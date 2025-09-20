@@ -83,6 +83,7 @@
     },
     "Teleports": {
       "ForceAngles": false,
+      "Velocity": 300,
       "Entry": {
         "Model": "models/blockmaker/teleport/model.vmdl",
         "Color": "0,255,0,255"

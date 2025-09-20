@@ -1,9 +1,9 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
+using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
-using FixVectorLeak.src;
-using FixVectorLeak.src.Structs;
+using FixVectorLeak;
 using Microsoft.Extensions.Logging;
 using System.Drawing;
 using System.Text.Json;
@@ -115,6 +115,46 @@ public static class Utils
         return string.Empty;
     }
 
+    public static CBaseProp? GetBlockAim(this CCSPlayerController player)
+    {
+        var GameRules = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault()?.GameRules;
+
+        if (GameRules is null)
+            return null;
+
+        VirtualFunctionWithReturn<CCSGameRules, CBasePlayerController, nint, CBaseEntity?> CCSGameRules_FindPickerEntity = new(GameRules.Handle, GameData.GetOffset("CCSGameRules_FindPickerEntity"));
+        CBaseEntity? entity = CCSGameRules_FindPickerEntity.Invoke(GameRules, player, nint.Zero);
+
+        if (entity != null &&
+            entity.IsValid &&
+            entity.Entity != null &&
+            entity.DesignerName.Contains("prop_physics_override") &&
+            entity.Entity.Name.StartsWith("blockmaker")
+        )
+            return entity.As<CBaseProp>();
+
+        return null;
+    }
+
+    public static CBaseProp? GetClosestBlock(Vector_t endPos, CBaseProp excludeBlock, double threshold)
+    {
+        CBaseProp? closestBlock = null;
+
+        foreach (var prop in Utilities.GetAllEntities().Where(e => e.DesignerName.Contains("prop_physics_override") && e.Entity!.Name.StartsWith("blockmaker")))
+        {
+            var currentProp = prop.As<CBaseProp>();
+
+            if (currentProp == excludeBlock)
+                continue;
+
+            double distance = VectorUtils.CalculateDistance(endPos, currentProp.AbsOrigin!.ToVector_t());
+            if (distance < threshold)
+                closestBlock = currentProp;
+        }
+
+        return closestBlock;
+    }
+
     public static int GetPlacedBlocksCount()
     {
         int blockCount = 0;
@@ -179,7 +219,13 @@ public static class Utils
     };
     public static int GetAlpha(string input)
     {
-        return AlphaMapping.TryGetValue(input.ToLower(), out var alpha) ? alpha : AlphaMapping["0%"];
+        if (AlphaMapping.TryGetValue(input, out int value))
+            return value;
+
+        if (int.TryParse(input.TrimEnd('%'), out int percentage) && percentage >= 0 && percentage <= 100)
+            return (int)Math.Round(percentage / 100.0 * 255);
+
+        throw new ArgumentException("Invalid percentage format or value.", nameof(input));
     }
 
     public static float GetSize(string input)
@@ -197,7 +243,10 @@ public static class Utils
         beam.Entity!.Name = "blockmaker_beam";
         beam.Render = color;
         beam.Width = width;
-        beam.EndPos.Add(new(endPos.X, endPos.Y, endPos.Z));
+
+        beam.EndPos.X = endPos.X;
+        beam.EndPos.Y = endPos.Y;
+        beam.EndPos.Z = endPos.Z;
 
         beam.Teleport(startPos);
         beam.DispatchSpawn();
@@ -205,7 +254,7 @@ public static class Utils
         return beam;
     }
 
-    public static void DrawBeamsAroundBlock(CCSPlayerController player, CBaseProp block, Color color)
+    public static void DrawBeamsAroundBlock(CCSPlayerController player, CBaseEntity block, Color color)
     {
         Vector_t pos = block.AbsOrigin!.ToVector_t();
         QAngle_t rotation = block.AbsRotation!.ToQAngle_t();
@@ -252,35 +301,61 @@ public static class Utils
 
         var beams = new List<Vector_t[]>
         {
-            new[] {corners[0], corners[1]}, new[] {corners[1], corners[2]}, new[] {corners[2], corners[3]}, new[] {corners[3], corners[0]},
-            new[] {corners[4], corners[5]}, new[] {corners[5], corners[6]}, new[] {corners[6], corners[7]}, new[] {corners[7], corners[4]},
-            new[] {corners[0], corners[4]}, new[] {corners[1], corners[5]}, new[] {corners[2], corners[6]}, new[] {corners[3], corners[7]}
+            new[] { corners[0], corners[1] }, new[] { corners[1], corners[2] }, new[] { corners[2], corners[3] }, new[] { corners[3], corners[0] }, // Bottom
+            new[] { corners[4], corners[5] }, new[] { corners[5], corners[6] }, new[] { corners[6], corners[7] }, new[] { corners[7], corners[4] }, // Top
+            new[] { corners[0], corners[4] }, new[] { corners[1], corners[5] }, new[] { corners[2], corners[6] }, new[] { corners[3], corners[7] }  // Sides
         };
 
-        // Update existing
-        if (Building.PlayerHolds[player].Beams.Count > 0)
+        var playerBeams = Building.PlayerHolds[player].Beams;
+
+        // Remove invalid or excess beams
+        for (int i = playerBeams.Count - 1; i >= 0; i--)
         {
-            int beamCount = 0;
-            foreach (var oldBeam in Building.PlayerHolds[player].Beams)
+            if (playerBeams[i] == null || !playerBeams[i].IsValid)
             {
-                oldBeam.EndPos.X = beams[beamCount][1].X;
-                oldBeam.EndPos.Y = beams[beamCount][1].Y;
-                oldBeam.EndPos.Z = beams[beamCount][1].Z;
-
-                oldBeam.DispatchSpawn();
-
-                oldBeam.Teleport(beams[beamCount][0], block.AbsRotation!.ToQAngle_t());
-
-                beamCount++;
+                playerBeams.RemoveAt(i);
             }
-            return;
         }
 
-        // Create new
-        foreach (var beam in beams)
+        // Update or create beams
+        for (int i = 0; i < beams.Count; i++)
         {
-            var newBeam = DrawBeam(beam[0], beam[1], color);
-            Building.PlayerHolds[player].Beams.Add(newBeam);
+            if (i < playerBeams.Count)
+            {
+                // Update existing beam
+                var beam = playerBeams[i];
+                if (beam != null && beam.IsValid)
+                {
+                    beam.Render = color;
+                    beam.Width = 0.25f;
+                    beam.Teleport(beams[i][0]);
+                    beam.EndPos.X = beams[i][1].X;
+                    beam.EndPos.Y = beams[i][1].Y;
+                    beam.EndPos.Z = beams[i][1].Z;
+                    Utilities.SetStateChanged(beam, "CBeam", "m_vecEndPos");
+                    Utilities.SetStateChanged(beam, "CBaseModelEntity", "m_clrRender");
+                }
+                else
+                {
+                    // Replace invalid beam
+                    playerBeams[i] = DrawBeam(beams[i][0], beams[i][1], color);
+                }
+            }
+            else
+            {
+                // Create new beam if needed
+                var newBeam = DrawBeam(beams[i][0], beams[i][1], color);
+                playerBeams.Add(newBeam);
+            }
+        }
+
+        // Remove any extra beams
+        while (playerBeams.Count > beams.Count)
+        {
+            var beam = playerBeams[playerBeams.Count - 1];
+            if (beam != null && beam.IsValid)
+                beam.Remove();
+            playerBeams.RemoveAt(playerBeams.Count - 1);
         }
     }
 

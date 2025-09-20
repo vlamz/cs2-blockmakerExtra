@@ -3,8 +3,8 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 using CS2TraceRay.Class;
 using CS2TraceRay.Enum;
-using FixVectorLeak.src;
-using FixVectorLeak.src.Structs;
+using CS2TraceRay.Struct;
+using FixVectorLeak;
 using System.Drawing;
 
 public partial class Lights

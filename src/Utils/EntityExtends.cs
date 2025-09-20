@@ -1,7 +1,7 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Entities.Constants;
 using CounterStrikeSharp.API.Modules.Memory;
-using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 using CounterStrikeSharp.API.Modules.UserMessages;
 using CounterStrikeSharp.API.Modules.Utils;
 using System.Diagnostics.CodeAnalysis;
@@ -182,20 +182,18 @@ public static class EntityExtends
             pawn.CommitSuicide(true, true);
     }
 
-    private static Action<IntPtr>? CollisionRulesChangedDelegate;
-    public static void CollisionRulesChanged(this CEntityInstance entity)
+    public static void CollisionRulesChanged(this CBaseEntity entity, CollisionGroup group)
     {
-        if (CollisionRulesChangedDelegate == null)
+        if (entity.Collision == null)
         {
-            CollisionRulesChangedDelegate = VirtualFunction.CreateVoid<IntPtr>(entity.Handle, GameData.GetOffset("CollisionRulesChanged"));
-
-            if (CollisionRulesChangedDelegate == null)
-            {
-                Console.WriteLine("Failed to create CollisionRulesChanged delegate!");
-                return;
-            }
+            Utils.Log("(CollisionRulesChanged) Collision is null");
+            return;
         }
+ 
+        entity.Collision.CollisionGroup = (byte)group;
+        entity.Collision.CollisionAttribute.CollisionGroup = (byte)group;
 
-        CollisionRulesChangedDelegate.Invoke(entity.Handle);
+        VirtualFunctionVoid<nint> collisionRulesChanged = new VirtualFunctionVoid<nint>(entity.Handle, GameData.GetOffset("CBaseEntity_CollisionRulesChanged"));
+        collisionRulesChanged.Invoke(entity.Handle);
     }
 }

@@ -1,9 +1,8 @@
 ﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
-using FixVectorLeak.src;
-using FixVectorLeak.src.Structs;
 using System.Drawing;
+using FixVectorLeak;
 
 public partial class Blocks
 {

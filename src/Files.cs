@@ -1,7 +1,6 @@
 ﻿using CounterStrikeSharp.API.Modules.Utils;
 using CounterStrikeSharp.API;
-using FixVectorLeak.src.Structs;
-using FixVectorLeak.src;
+using FixVectorLeak;
 using System.Text.Json;
 
 public static partial class Files
@@ -80,6 +79,9 @@ public static partial class Files
     {
         public static void Save(bool autosave = false)
         {
+            if (Utilities.GetPlayers().Count <= 0)
+                return;
+
             if (Blocks.Entities.Count <= 0)
             {
                 Utils.Log($"No blocks to save on {Server.MapName}");

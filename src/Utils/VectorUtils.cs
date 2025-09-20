@@ -1,56 +1,9 @@
-using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
-using CounterStrikeSharp.API.Modules.Memory;
-using System.Runtime.InteropServices;
-using FixVectorLeak.src.Structs;
-using FixVectorLeak.src;
+using FixVectorLeak;
 
 public static class VectorUtils
 {
-    public static CBaseProp? GetBlockAim(this CCSPlayerController player)
-    {
-        var GameRules = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault()?.GameRules;
-
-        if (GameRules is null)
-            return null;
-
-        VirtualFunctionWithReturn<IntPtr, IntPtr, IntPtr> findPickerEntity = new(GameRules.Handle, 27);
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) findPickerEntity = new(GameRules.Handle, 28);
-
-        var target = new CBaseProp(findPickerEntity.Invoke(GameRules.Handle, player.Handle));
-
-        if (target != null &&
-            target.IsValid &&
-            target.Entity != null &&
-            target.DesignerName.Contains("prop_physics_override") &&
-            target.Entity.Name.StartsWith("blockmaker")
-        )
-            return target;
-
-        return null;
-    }
-
-    public static CBaseProp? GetClosestBlock(Vector_t endPos, CBaseProp excludeBlock, double threshold)
-    {
-        CBaseProp? closestBlock = null;
-
-        foreach (var prop in Utilities.GetAllEntities().Where(e => e.DesignerName.Contains("prop_physics_override") && e.Entity!.Name.StartsWith("blockmaker")))
-        {
-            var currentProp = prop.As<CBaseProp>();
-
-            if (currentProp == excludeBlock)
-                continue;
-
-            double distance = CalculateDistance(endPos, currentProp.AbsOrigin!.ToVector_t());
-            if (distance < threshold)
-                closestBlock = currentProp;
-        }
-
-        return closestBlock;
-    }
-
     public static (Vector_t position, QAngle_t rotation) GetEndXYZ(CCSPlayerController player, CBaseProp block, double distance = 250, bool grid = false, float gridValue = 0f, bool snapping = false, float snapValue = 0f)
     {
         if (Blocks.Entities.TryGetValue(Building.PlayerHolds[player].Entity, out var locked))
@@ -69,7 +22,7 @@ public static class VectorUtils
         var pawn = player.Pawn()!;
         var playerpos = pawn.AbsOrigin!;
 
-        Vector_t aim = new(playerpos.X, playerpos.Y, playerpos.Z + pawn.CameraServices!.OldPlayerViewOffsetZ); 
+        Vector_t aim = new(playerpos.X, playerpos.Y, playerpos.Z + pawn.ViewOffset.Z); 
 
         double angleA = -pawn.EyeAngles.X;
         double angleB = pawn.EyeAngles.Y;
@@ -93,7 +46,7 @@ public static class VectorUtils
         {
             float scale = Blocks.Entities.ContainsKey(block) ? Utils.GetSize(Blocks.Entities[block].Size) : 1;
 
-            var closestBlock = GetClosestBlock(endPos, block, scale * block.Collision.Maxs.X * 2);
+            var closestBlock = Utils.GetClosestBlock(endPos, block, scale * block.Collision.Maxs.X * 2);
             if (closestBlock != null)
             {
                 var snap = SnapToClosestBlock(block, closestBlock, snapValue, endPos);

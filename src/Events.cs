@@ -5,9 +5,8 @@ using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
-using FixVectorLeak.src;
-using FixVectorLeak.src.Structs;
 using Timer = CounterStrikeSharp.API.Modules.Timers.Timer;
+using FixVectorLeak;
 
 public static class Events
 {
@@ -30,6 +29,7 @@ public static class Events
         Instance.AddCommandListener("say_team", OnCommandSay, HookMode.Pre);
 
         Instance.HookEntityOutput("trigger_multiple", "OnStartTouch", trigger_multiple, HookMode.Pre);
+        Instance.HookEntityOutput("trigger_multiple", "OnTrigger", trigger_multiple, HookMode.Pre);
 
         VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Hook(OnTakeDamage, HookMode.Pre);
 
@@ -52,6 +52,7 @@ public static class Events
         Instance.RemoveCommandListener("say_team", OnCommandSay, HookMode.Pre);
 
         Instance.UnhookEntityOutput("trigger_multiple", "OnStartTouch", trigger_multiple, HookMode.Pre);
+        Instance.UnhookEntityOutput("trigger_multiple", "OnTrigger", trigger_multiple, HookMode.Pre);
 
         VirtualFunctions.CBaseEntity_TakeDamageOldFunc.Unhook(OnTakeDamage, HookMode.Pre);
 
@@ -239,7 +240,10 @@ public static class Events
 
     private static HookResult trigger_multiple(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
     {
-        if (Blocks.Triggers.TryGetValue(caller, out CBaseProp? block))
+        if (caller.DesignerName != "trigger_multiple")
+            return HookResult.Continue;
+
+        if (Blocks.Triggers.TryGetValue(caller.As<CTriggerMultiple>(), out CBaseProp? block))
         {
             if (activator.DesignerName != "player")
                 return HookResult.Continue;
@@ -259,6 +263,9 @@ public static class Events
                         return HookResult.Continue;
             }
 
+            if (player.PlayerPawn.Value?.LifeState != (byte)LifeState_t.LIFE_ALIVE)
+                return HookResult.Continue;
+
             var teleport = Teleports.Entities.Where(pair => pair.Entry.Entity == block || pair.Exit.Entity == block).FirstOrDefault();
 
             if (teleport != null)
@@ -269,11 +276,15 @@ public static class Events
                 if (block.Entity!.Name.Contains("Entry"))
                 {
                     pawn.Teleport(
-                        teleport.Exit.Entity.AbsOrigin,
+                        teleport.Exit.Entity.AbsOrigin?.ToVector_t(),
+
                         Config.Settings.Teleports.ForceAngles
-                        ? teleport.Exit.Entity.AbsRotation
-                        : pawn.EyeAngles,
-                        pawn.AbsVelocity
+                        ? teleport.Exit.Entity.AbsRotation?.ToQAngle_t()
+                        : pawn.EyeAngles.ToQAngle_t(),
+
+                        Config.Settings.Teleports.Velocity > 0
+                        ? new Vector_t(pawn.AbsVelocity.X, pawn.AbsVelocity.Y, Config.Settings.Teleports.Velocity)
+                        : pawn.AbsVelocity.ToVector_t()
                     );
 
                     pawn.EmitSound(Config.Sounds.Blocks.Teleport);

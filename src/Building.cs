@@ -1,12 +1,12 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
+using CS2TraceRay.Struct;
 using CS2TraceRay.Class;
 using CS2TraceRay.Enum;
-using FixVectorLeak.src;
-using FixVectorLeak.src.Structs;
-using System.Data;
+using FixVectorLeak;
 using System.Drawing;
+using System.Data;
 
 public static class Building
 {
@@ -129,7 +129,7 @@ public static class Building
 
             var pawn = player.Pawn()!;
 
-            Vector_t position = new(pawn.AbsOrigin!.X, pawn.AbsOrigin.Y, pawn.AbsOrigin.Z + pawn.CameraServices!.OldPlayerViewOffsetZ);
+            Vector_t position = new(pawn.AbsOrigin!.X, pawn.AbsOrigin.Y, pawn.AbsOrigin.Z + pawn.ViewOffset!.Z);
 
             CGameTrace? trace = TraceRay.TraceShape(player.GetEyePosition()!, pawn.EyeAngles, TraceMask.MaskShot, player);
             if (trace == null || !trace.HasValue || trace.Value.Position.Length() == 0)

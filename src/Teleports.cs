@@ -2,9 +2,8 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
 using CounterStrikeSharp.API.Modules.Utils;
-using FixVectorLeak.src;
-using FixVectorLeak.src.Structs;
 using Microsoft.Extensions.Logging;
+using FixVectorLeak;
 
 public static class Teleports
 {
@@ -124,13 +123,11 @@ public static class Teleports
             teleport.Render = Utils.ParseColor(name == "Entry" ? entryColor : exitColor);
 
             teleport.SetModel(name == "Entry" ? entryModel : exitModel);
-            teleport.DispatchSpawn();
-
-            teleport.Collision.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING;
-            teleport.Collision.CollisionAttribute.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING;
-
-            teleport.AcceptInput("DisableMotion", teleport, teleport);
             teleport.Teleport(position, rotation);
+            teleport.DispatchSpawn();
+            teleport.AcceptInput("DisableMotion");
+
+            teleport.CollisionRulesChanged(CollisionGroup.COLLISION_GROUP_WEAPON);
 
             CreateTrigger(teleport);
 
@@ -151,18 +148,19 @@ public static class Teleports
 
         if (trigger != null && trigger.IsValid && trigger.Entity != null)
         {
-            trigger.Entity.Name = teleport.Entity!.Name + "_trigger";
             trigger.Spawnflags = 1;
+            trigger.Entity.Name = teleport.Entity!.Name + "_trigger";
             trigger.CBodyComponent!.SceneNode!.Owner!.Entity!.Flags &= ~(uint)(1 << 2);
-            trigger.Collision.SolidType = SolidType_t.SOLID_VPHYSICS;
+
             trigger.Collision.SolidFlags = 0;
-            trigger.Collision.CollisionGroup = 14;
+            trigger.Collision.SolidType = SolidType_t.SOLID_VPHYSICS;
 
             trigger.SetModel(teleport.CBodyComponent!.SceneNode!.GetSkeletonInstance().ModelState.ModelName);
-            trigger.DispatchSpawn();
             trigger.Teleport(teleport.AbsOrigin, teleport.AbsRotation);
-            trigger.AcceptInput("FollowEntity", teleport, trigger, "!activator");
-            trigger.AcceptInput("Enable");
+            trigger.DispatchSpawn();
+            trigger.AcceptInput("SetParent", teleport, trigger, "!activator");
+
+            trigger.CollisionRulesChanged(CollisionGroup.COLLISION_GROUP_TRIGGER);
 
             Blocks.Triggers.Add(trigger, teleport);
         }

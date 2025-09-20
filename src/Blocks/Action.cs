@@ -3,7 +3,7 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
-using FixVectorLeak.src;
+using FixVectorLeak;
 using System.Drawing;
 
 using Timer = CounterStrikeSharp.API.Modules.Timers.Timer;
@@ -90,7 +90,7 @@ public partial class Blocks
             if (blockActions.TryGetValue(type, out var action))
                 action(player, block);
 
-            else Utils.PrintToChat(player, $"{ChatColors.Red}Error: No action found for {type}");
+            //else Utils.PrintToChat(player, $"{ChatColors.Red}Error: No action found for {type}");
         }
     }
 
@@ -215,9 +215,7 @@ public partial class Blocks
 
         instance.AddTimer(duration, () =>
         {
-            block.Collision.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING;
-            block.Collision.CollisionAttribute.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_DISSOLVING;
-            block.CollisionRulesChanged();
+            block.CollisionRulesChanged(CollisionGroup.COLLISION_GROUP_DISSOLVING);
 
             var clr = Utils.GetColor(data.Color);
             int alpha = Utils.GetAlpha(data.Transparency);
@@ -226,9 +224,7 @@ public partial class Blocks
 
             instance.AddTimer(cooldown, () =>
             {
-                block.Collision.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_NONE;
-                block.Collision.CollisionAttribute.CollisionGroup = (byte)CollisionGroup.COLLISION_GROUP_NONE;
-                block.CollisionRulesChanged();
+                block.CollisionRulesChanged(CollisionGroup.COLLISION_GROUP_NONE);
 
                 block.Render = render;
                 Utilities.SetStateChanged(block, "CBaseModelEntity", "m_clrRender");
@@ -619,6 +615,17 @@ public partial class Blocks
 
         BlockCooldownTimer(player, block);
     }
+
+    /*private static void Action_Water(CCSPlayerController player, Data data)
+    {
+        Server.NextFrame(() => { Server.PrintToChatAll("water"); });
+
+        var pawn = player.Pawn();
+        if (pawn == null) return;
+
+        var block = data.Entity;
+        var settings = data.Properties;
+    }*/
 
     public static void Test(CCSPlayerController player)
     {

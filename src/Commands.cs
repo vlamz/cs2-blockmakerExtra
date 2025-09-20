@@ -2,7 +2,6 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
-using System.Drawing;
 
 public static class Commands
 {
@@ -293,7 +292,7 @@ public static class Commands
 
         if (Utils.GetPlacedBlocksCount() <= 0)
         {
-             Utils.PrintToChatAll($"{ChatColors.Red}No blocks to save");
+            Utils.PrintToChatAll($"{ChatColors.Red}No blocks to save");
             return;
         }
 
