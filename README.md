@@ -608,6 +608,7 @@
 | `!listzone <id>` / `!listzone <name>` | Show specific zone details | `!listzone 1` veya `!listzone SpawnArea` |
 | `!deletezone <id>` / `!deletezone <name>` | Delete a safe zone | `!deletezone 1` veya `!deletezone SpawnArea` |
 | `!removezone <id>` / `!removezone <name>` | Delete a safe zone (alias) | `!removezone SpawnArea` |
+| `!zoneedit <id/name> <property> <value>` / `!editzone` / `!setzone` | Edit zone properties | `!zoneedit 1 godmode on` |
 
 ### Command Usage Examples
 
@@ -635,6 +636,19 @@
 !listzone              - List all zones with basic info
 !listzone 1            - Show detailed info for zone ID 1
 !listzone SpawnArea    - Show detailed info for zone named "SpawnArea"
+```
+
+**Editing SafeZone Properties:**
+```
+!zoneedit 1 godmode on          - Enable godmode for zone ID 1
+!zoneedit SpawnArea healing off - Disable healing for zone named "SpawnArea"
+!zoneedit 1 healingamount 5.0   - Set healing amount to 5.0 HP
+!zoneedit 1 healinginterval 2.0 - Set healing interval to 2.0 seconds
+!zoneedit 1 notify on           - Enable notifications for zone ID 1
+!zoneedit 1 blockdamage off     - Disable damage blocking to outside
+
+Properties: godmode, healing, healingamount, healinginterval, notify, blockdamage
+Values: on/off/true/false (for bool) or <number> (for amount/interval)
 ```
 
 <br>
@@ -685,6 +699,8 @@
 **Bug Fixes:**
 - ✅ Fixed BuildMode function: BuilderData assignment now uses `target.Slot` instead of `player.Slot` when enabling build mode for eligible players
 - ✅ Fixed ManageBuilder function: BuilderData assignment now uses `targetPlayer.Slot` instead of `player.Slot` when granting builder access
+- ✅ Fixed SafeZone godmode: Players in zones with Godmode disabled now properly have their damage restored (TakesDamage set to true)
+- ✅ Fixed SafeZone creation: Zone name from first command call is now preserved when setting second position (previously used second command's name)
 
 ### Version 0.2.4 → 0.3.0 Migration Notes
 

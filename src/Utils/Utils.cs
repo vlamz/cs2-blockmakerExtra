@@ -427,5 +427,6 @@ public static class Utils
         }
         SafeZone.PlayerHealingTimers.Clear();
         SafeZone.PendingPositions.Clear();
+        SafeZone.ClearAllPreviews();
     }
 }

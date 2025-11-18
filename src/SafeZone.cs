@@ -2,6 +2,9 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
+using CS2TraceRay.Class;
+using CS2TraceRay.Enum;
+using CS2TraceRay.Struct;
 using FixVectorLeak;
 using System.Drawing;
 using Timer = CounterStrikeSharp.API.Modules.Timers.Timer;
@@ -43,9 +46,17 @@ public static class SafeZone
     private static Plugin Instance = Plugin.Instance;
     private static Config Config = Instance.Config;
     
+    public class PendingZoneCreation
+    {
+        public Vector_t Position1 { get; set; }
+        public Vector_t? Position2 { get; set; }
+        public string ZoneName { get; set; } = "";
+    }
+
     public static Dictionary<int, ZoneData> Zones = new();
-    public static Dictionary<CCSPlayerController, Vector_t?> PendingPositions = new();
+    public static Dictionary<CCSPlayerController, PendingZoneCreation> PendingPositions = new();
     public static Dictionary<CCSPlayerController, Dictionary<int, Timer>> PlayerHealingTimers = new();
+    public static Dictionary<CCSPlayerController, List<CounterStrikeSharp.API.Core.CBeam>> PreviewBeams = new();
     public static int NextZoneId = 1;
 
     public static void Initialize()
@@ -53,7 +64,121 @@ public static class SafeZone
         Zones.Clear();
         PendingPositions.Clear();
         PlayerHealingTimers.Clear();
+        ClearAllPreviews();
         NextZoneId = 1;
+    }
+
+    public static void ClearPreview(CCSPlayerController player)
+    {
+        if (PreviewBeams.ContainsKey(player))
+        {
+            foreach (var beam in PreviewBeams[player])
+            {
+                if (beam != null && beam.IsValid)
+                    beam.Remove();
+            }
+            PreviewBeams[player].Clear();
+            PreviewBeams.Remove(player);
+        }
+    }
+
+    public static void ClearAllPreviews()
+    {
+        foreach (var playerBeams in PreviewBeams.Values)
+        {
+            foreach (var beam in playerBeams)
+            {
+                if (beam != null && beam.IsValid)
+                    beam.Remove();
+            }
+        }
+        PreviewBeams.Clear();
+    }
+
+    public static void DrawZonePreview(CCSPlayerController player, Vector_t pos1, Vector_t? pos2 = null)
+    {
+        if (player == null || !player.IsValid)
+            return;
+
+        var color = Color.FromArgb(200, 0, 255, 0); // Semi-transparent green
+        var width = 0.5f;
+
+        // Clear existing preview
+        ClearPreview(player);
+
+        if (!PreviewBeams.ContainsKey(player))
+            PreviewBeams[player] = new List<CounterStrikeSharp.API.Core.CBeam>();
+
+        if (pos2 == null)
+        {
+            // Only first position - draw a small cross/marker
+            var offset = 32.0f; // 32 units offset for visibility
+            var beams = new[]
+            {
+                // Horizontal line
+                new { Start = new Vector_t(pos1.X - offset, pos1.Y, pos1.Z), End = new Vector_t(pos1.X + offset, pos1.Y, pos1.Z) },
+                // Vertical line
+                new { Start = new Vector_t(pos1.X, pos1.Y - offset, pos1.Z), End = new Vector_t(pos1.X, pos1.Y + offset, pos1.Z) },
+                // Up line
+                new { Start = new Vector_t(pos1.X, pos1.Y, pos1.Z), End = new Vector_t(pos1.X, pos1.Y, pos1.Z + offset) }
+            };
+
+            foreach (var beam in beams)
+            {
+                var beamEntity = Utils.DrawBeam(beam.Start, beam.End, color, width);
+                if (beamEntity != null)
+                    PreviewBeams[player].Add(beamEntity);
+            }
+        }
+        else
+        {
+            // Both positions - draw full zone preview
+            var p1 = pos1;
+            var p2 = pos2.Value;
+
+            // Normalize min/max
+            var min = new Vector_t(
+                Math.Min(p1.X, p2.X),
+                Math.Min(p1.Y, p2.Y),
+                Math.Min(p1.Z, p2.Z)
+            );
+            var max = new Vector_t(
+                Math.Max(p1.X, p2.X),
+                Math.Max(p1.Y, p2.Y),
+                Math.Max(p1.Z, p2.Z)
+            );
+
+            // Calculate 8 corners of the box
+            var corners = new Vector_t[8]
+            {
+                new(min.X, min.Y, min.Z), // Bottom-back-left
+                new(max.X, min.Y, min.Z), // Bottom-back-right
+                new(max.X, max.Y, min.Z), // Bottom-front-right
+                new(min.X, max.Y, min.Z), // Bottom-front-left
+                new(min.X, min.Y, max.Z), // Top-back-left
+                new(max.X, min.Y, max.Z), // Top-back-right
+                new(max.X, max.Y, max.Z), // Top-front-right
+                new(min.X, max.Y, max.Z)  // Top-front-left
+            };
+
+            // Draw 12 edges of the box
+            var edges = new[]
+            {
+                // Bottom face
+                (corners[0], corners[1]), (corners[1], corners[2]), (corners[2], corners[3]), (corners[3], corners[0]),
+                // Top face
+                (corners[4], corners[5]), (corners[5], corners[6]), (corners[6], corners[7]), (corners[7], corners[4]),
+                // Vertical edges
+                (corners[0], corners[4]), (corners[1], corners[5]), (corners[2], corners[6]), (corners[3], corners[7])
+            };
+
+            foreach (var (start, end) in edges)
+            {
+                var beamEntity = Utils.DrawBeam(start, end, color, width);
+                if (beamEntity != null)
+                    PreviewBeams[player].Add(beamEntity);
+            }
+        }
     }
 
     public static bool IsPlayerInZone(CCSPlayerController player, ZoneData zone)
@@ -133,9 +258,20 @@ public static class SafeZone
             {
                 // Apply godmode (only if not already in build mode godmode)
                 bool buildModeGodmode = Instance.BuilderData.ContainsKey(player.Slot) && Instance.BuilderData[player.Slot].Godmode;
-                if (zone.Godmode && !buildModeGodmode && pawn.TakesDamage)
+                if (!buildModeGodmode)
                 {
-                    pawn.TakesDamage = false;
+                    if (zone.Godmode)
+                    {
+                        // Enable godmode if zone has it enabled
+                        if (pawn.TakesDamage)
+                            pawn.TakesDamage = false;
+                    }
+                    else
+                    {
+                        // Restore damage if zone has godmode disabled
+                        if (!pawn.TakesDamage)
+                            pawn.TakesDamage = true;
+                    }
                 }
 
                 // Handle healing
@@ -250,6 +386,58 @@ public static class SafeZone
         foreach (var disconnectedPlayer in disconnectedPending)
         {
             PendingPositions.Remove(disconnectedPlayer);
+        }
+
+        // Update previews for players with pending positions
+        var disconnectedPreview = PreviewBeams.Keys.Where(p => !connectedPlayerSet.Contains(p)).ToList();
+        foreach (var disconnectedPlayer in disconnectedPreview)
+        {
+            ClearPreview(disconnectedPlayer);
+        }
+
+        foreach (var player in players)
+        {
+            if (player == null || !player.IsValid)
+                continue;
+
+            if (PendingPositions.TryGetValue(player, out var pending) && pending != null)
+            {
+                try
+                {
+                    // Use CS2TraceRay to get crosshair position
+                    var pawn = player.PlayerPawn.Value;
+                    if (pawn == null || !pawn.IsValid)
+                        continue;
+
+                    CGameTrace? trace = TraceRay.TraceShape(player.GetEyePosition()!, pawn.EyeAngles, TraceMask.MaskShot, player);
+                    if (trace != null && trace.HasValue && trace.Value.Position.Length() != 0)
+                    {
+                        var tracePos = trace.Value.Position;
+                        var crosshairPos = new Vector_t(tracePos.X, tracePos.Y, tracePos.Z);
+                        
+                        // Validate position
+                        if (!float.IsNaN(crosshairPos.X) && !float.IsNaN(crosshairPos.Y) && !float.IsNaN(crosshairPos.Z) &&
+                            !float.IsInfinity(crosshairPos.X) && !float.IsInfinity(crosshairPos.Y) && !float.IsInfinity(crosshairPos.Z))
+                        {
+                            // Use Position2 if explicitly set by user, otherwise use current crosshair for preview only
+                            // Do NOT modify pending.Position2 here - it should only be set by user commands
+                            Vector_t? previewPos2 = pending.Position2 ?? crosshairPos;
+                            
+                            // Draw preview with first position and preview position (either explicit Position2 or current crosshair)
+                            DrawZonePreview(player, pending.Position1, previewPos2);
+                        }
+                    }
+                    else
+                    {
+                        // No valid trace - draw preview with stored positions
+                        DrawZonePreview(player, pending.Position1, pending.Position2);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Utils.Log($"Error updating SafeZone preview for player {player.Slot}: {ex.Message}");
+                }
+            }
         }
     }
 

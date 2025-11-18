@@ -139,6 +139,11 @@ public class Config_Commands
         public List<string> Create { get; set; } = [ "safezone", "sz" ];
         public List<string> List { get; set; } = [ "listzone", "listzones", "zones" ];
         public List<string> Delete { get; set; } = [ "deletezone", "removezone" ];
+        public List<string> Edit { get; set; } = [ "zoneedit", "editzone", "setzone" ];
+        public List<string> UpdatePos1 { get; set; } = [ "zonepos1", "szpos1" ];
+        public List<string> UpdatePos2 { get; set; } = [ "zonepos2", "szpos2" ];
+        public List<string> Confirm { get; set; } = [ "zoneconfirm", "szconfirm" ];
+        public List<string> Cancel { get; set; } = [ "zonecancel", "szcancel" ];
     }
     public Commands_SafeZone SafeZone { get; set; } = new();
 }

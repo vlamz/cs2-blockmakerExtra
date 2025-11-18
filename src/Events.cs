@@ -234,6 +234,7 @@ public static class Events
 
         // Clean up SafeZone pending positions
         SafeZone.PendingPositions.Remove(player);
+        SafeZone.ClearPreview(player);
 
         // Clean up LastPlayerZones
         LastPlayerZones.Remove(player);
