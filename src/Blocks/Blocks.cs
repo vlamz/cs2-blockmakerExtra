@@ -128,7 +128,7 @@ public partial class Blocks
 
         if (block != null && block.IsValid && block.Entity != null)
         {
-            block.Entity.Name = "blockmaker_" + type;
+            block.Entity.Name = "creatify_" + type;
             block.EnableUseOutput = true;
             block.CBodyComponent!.SceneNode!.Owner!.Entity!.Flags &= ~(uint)(1 << 2);
             block.ShadowStrength = config.Settings.Blocks.DisableShadows ? 0.0f : 1.0f;
@@ -327,7 +327,7 @@ public partial class Blocks
         public static void Load()
         {
             string directoryPath = Path.GetDirectoryName(Plugin.Instance.Config.GetConfigPath())!;
-            string correctedPath = directoryPath.Replace("/BlockMaker.json", "");
+            string correctedPath = directoryPath.Replace("/Creatify.json", "");
 
             var propertiesPath = Path.Combine(correctedPath, "default_properties.json");
 
@@ -376,7 +376,7 @@ public partial class Blocks
 
         if (particle != null && particle.IsValid && particle.Entity != null)
         {
-            particle.Entity.Name = "blockmaker_effect";
+            particle.Entity.Name = "creatify_effect";
             particle.CBodyComponent!.SceneNode!.Owner!.Entity!.Flags &= ~(uint)(1 << 2);
             particle.StartActive = true;
 

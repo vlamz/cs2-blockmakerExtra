@@ -5,6 +5,7 @@ using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
+using Creatify.Modules;
 using Timer = CounterStrikeSharp.API.Modules.Timers.Timer;
 using FixVectorLeak;
 
@@ -286,9 +287,35 @@ public static class Events
                     case "LightDistance":
                         Commands.LightSettings(player, type, input);
                         break;
-                    case "Reset":
                     default:
-                        Commands.Properties(player, type, input);
+                        // SafeZone healing amount/interval handling
+                        if (type.StartsWith("SafeZoneHealingAmount_"))
+                        {
+                            var zoneIdStr = type.Replace("SafeZoneHealingAmount_", "");
+                            if (int.TryParse(zoneIdStr, out int zoneId))
+                            {
+                                Commands.EditSafeZone(player, $"{zoneId} healingamount {input}");
+                            }
+                            break;
+                        }
+                        else if (type.StartsWith("SafeZoneHealingInterval_"))
+                        {
+                            var zoneIdStr = type.Replace("SafeZoneHealingInterval_", "");
+                            if (int.TryParse(zoneIdStr, out int zoneId))
+                            {
+                                Commands.EditSafeZone(player, $"{zoneId} healinginterval {input}");
+                            }
+                            break;
+                        }
+                        
+                        if (type == "Reset")
+                        {
+                            Commands.Properties(player, type, input);
+                        }
+                        else
+                        {
+                            Commands.Properties(player, type, input);
+                        }
                         break;
                 }
 

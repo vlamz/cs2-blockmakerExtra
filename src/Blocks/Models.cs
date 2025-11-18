@@ -78,7 +78,7 @@ public partial class Blocks
         public static void Load()
         {
             string directoryPath = Path.GetDirectoryName(Plugin.Instance.Config.GetConfigPath())!;
-            string correctedPath = directoryPath.Replace("/BlockMaker.json", "");
+            string correctedPath = directoryPath.Replace("/Creatify.json", "");
 
             var modelsPath = Path.Combine(correctedPath, "models.json");
 

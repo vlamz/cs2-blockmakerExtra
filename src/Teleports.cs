@@ -115,7 +115,7 @@ public static class Teleports
 
         if (teleport != null && teleport.IsValid && teleport.Entity != null)
         {
-            teleport.Entity.Name = "blockmaker_Teleport_" + name;
+            teleport.Entity.Name = "creatify_Teleport_" + name;
             teleport.EnableUseOutput = true;
 
             teleport.CBodyComponent!.SceneNode!.Owner!.Entity!.Flags &= ~(uint)(1 << 2);

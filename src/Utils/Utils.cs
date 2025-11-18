@@ -3,6 +3,7 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
+using Creatify.Modules;
 using FixVectorLeak;
 using Microsoft.Extensions.Logging;
 using System.Drawing;
@@ -129,7 +130,7 @@ public static class Utils
             entity.IsValid &&
             entity.Entity != null &&
             entity.DesignerName.Contains("prop_physics_override") &&
-            entity.Entity.Name.StartsWith("blockmaker")
+            entity.Entity.Name.StartsWith("creatify")
         )
             return entity.As<CBaseProp>();
 
@@ -140,7 +141,7 @@ public static class Utils
     {
         CBaseProp? closestBlock = null;
 
-        foreach (var prop in Utilities.GetAllEntities().Where(e => e.DesignerName.Contains("prop_physics_override") && e.Entity!.Name.StartsWith("blockmaker")))
+        foreach (var prop in Utilities.GetAllEntities().Where(e => e.DesignerName.Contains("prop_physics_override") && e.Entity!.Name.StartsWith("creatify")))
         {
             var currentProp = prop.As<CBaseProp>();
 
@@ -164,7 +165,7 @@ public static class Utils
             if (block == null || !block.IsValid || block.Entity == null)
                 continue;
 
-            if (!String.IsNullOrEmpty(block.Entity.Name) && block.Entity.Name.StartsWith("blockmaker"))
+            if (!String.IsNullOrEmpty(block.Entity.Name) && block.Entity.Name.StartsWith("creatify"))
                 blockCount++;
         }
 
@@ -240,7 +241,7 @@ public static class Utils
     {
         var beam = Utilities.CreateEntityByName<CBeam>("beam")!;
 
-        beam.Entity!.Name = "blockmaker_beam";
+        beam.Entity!.Name = "creatify_beam";
         beam.Render = color;
         beam.Width = width;
 
@@ -383,7 +384,7 @@ public static class Utils
             if (entity.Entity == null || string.IsNullOrEmpty(entity.Entity.Name))
                 continue;
 
-            if (entity.Entity.Name.StartsWith("blockmaker"))
+            if (entity.Entity.Name.StartsWith("creatify"))
                 entity.Remove();
         }
     }

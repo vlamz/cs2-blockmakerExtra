@@ -9,7 +9,7 @@ public class Config : BasePluginConfig
 
 public class Config_Settings
 {
-    public string Prefix { get; set; } = "{purple}BlockMaker {grey}|";
+    public string Prefix { get; set; } = "{purple}Creatify {grey}|";
     public string MenuType { get; set; } = "CenterHtmlMenu";
     public class Settings_Building
     {
@@ -150,7 +150,7 @@ public class Config_Commands
 
 public class Config_Sounds
 {
-    public string SoundEvents { get; set; } = "soundevents/blockmaker.vsndevts";
+    public string SoundEvents { get; set; } = "soundevents/creatify.vsndevts";
 
     public class Sounds_Blocks
     {

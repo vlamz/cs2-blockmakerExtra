@@ -88,7 +88,7 @@ public partial class Lights
         var light = Utilities.CreateEntityByName<COmniLight>("light_omni2");
         if (light != null && light.IsValid && light.Entity != null)
         {
-            light.Entity.Name = "blockmaker_light";
+            light.Entity.Name = "creatify_light";
             light.Enabled = true;
             light.DirectLight = 3;
             light.OuterAngle = 360f;
@@ -106,7 +106,7 @@ public partial class Lights
             var entity = Utilities.CreateEntityByName<CPhysicsPropOverride>("prop_physics_override");
             if (entity != null && entity.IsValid && entity.Entity != null)
             {
-                entity.Entity.Name = "blockmaker_light_entity";
+                entity.Entity.Name = "creatify_light_entity";
                 entity.CBodyComponent!.SceneNode!.Owner!.Entity!.Flags &= ~(uint)(1 << 2);
 
                 if (Config.Settings.Lights.HideModel && !Instance.buildMode)

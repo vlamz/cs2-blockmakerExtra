@@ -1,16 +1,16 @@
-# cs2-blockmaker
+# Creatify
 
-**BlockMaker plugin to create and save blocks, mostly for HNS**
+**Advanced Building & SafeZone Plugin for Counter-Strike 2**
 
 > [!NOTE]
-> This is a fork by **vlamz** updated for CounterStrikeSharp v1.0.347
-> Original plugin by **exkludera**
-
-> block managing can be done within the building menu /bm
+> **Developed by vlamz**  
+> Professional CS2 server enhancement tool with advanced building system and SafeZone module
 >
-> hold USE button to grab block, look around to move, left and right click to change distance
+> Block managing can be done within the building menu `/bm`
 >
-> hold RELOAD button and move your mouse to rotate the block
+> Hold USE button to grab block, look around to move, left and right click to change distance
+>
+> Hold RELOAD button and move your mouse to rotate the block
 
 <br>
 
@@ -34,14 +34,16 @@
 <br>
 
 > [!NOTE]
-> **Fork Information:**
-> - Fork by: **vlamz**
-> - Original author: **exkludera**
-> - Updated for: CounterStrikeSharp v1.0.347
+> **About Creatify:**
+> - **Developer:** vlamz
+> - **Version:** 0.3.0
+> - **API:** CounterStrikeSharp v1.0.347
+> - **License:** Proprietary
 >
-> **Credits:**
-> - thanks to [UgurhanK/BaseBuilder](https://github.com/UgurhanK/BaseBuilder) for the code base
-> - inspired by [BlockBuilder by x3ro](https://forums.alliedmods.net/showthread.php?t=258329)
+> **Credits & Acknowledgments:**
+> - Built upon concepts from various CS2 building plugins
+> - SafeZone module developed independently by vlamz
+> - Inspired by community building tools
 
 <img src="https://github.com/user-attachments/assets/53e486cc-8da4-45ab-bc6e-eb38145aba36" height="200px"> <br>
 
@@ -50,12 +52,12 @@
 ## example config
 
 <details>
-<summary>BlockMaker.json</summary>
+<summary>Creatify.json</summary>
   
 ```json
 {
   "Settings": {
-    "Prefix": "{purple}BlockMaker {grey}|",
+    "Prefix": "{purple}Creatify {grey}|",
     "MenuType": "CenterHtmlMenu",
     "Building": {
       "BuildMode": {
@@ -148,7 +150,7 @@
     }
   },
   "Sounds": {
-    "SoundEvents": "soundevents/blockmaker.vsndevts",
+    "SoundEvents": "soundevents/creatify.vsndevts",
     "Blocks": {
       "Speed": "bm_speed",
       "Camouflage": "bm_camouflage",
@@ -653,9 +655,15 @@ Values: on/off/true/false (for bool) or <number> (for amount/interval)
 
 <br>
 
-## Changes (vlamz fork)
+## Changes & Updates
 
-### Version 0.3.0 - SafeZone Feature Update (Latest)
+### Version 0.3.0 - Creatify Release (Latest)
+
+**Rebranding:**
+- ✅ Complete rebranding from BlockMaker to **Creatify**
+- ✅ Plugin author updated to **vlamz**
+- ✅ SafeZone module separated into `Creatify.Modules` namespace
+- ✅ All entity names and references updated to use "creatify" prefix
 
 **Major Features Added:**
 - ✅ **SafeZone System** - Create safe zones with customizable properties
@@ -678,15 +686,24 @@ Values: on/off/true/false (for bool) or <number> (for amount/interval)
 - ✅ Exception handling and error recovery
 - ✅ Performance optimizations (reduced GetPlayers() calls)
 - ✅ Build mode godmode conflict resolution
+- ✅ SafeZone module architecture with namespace separation
+- ✅ Code organization improvements for maintainability
 
 **Files Modified:**
-- `src/Main.cs` - Version update (0.2.4 → 0.3.0), SafeZone hot reload support
-- `src/Config.cs` - Added SafeZone configuration settings (`Settings.SafeZone`)
-- `src/Commands.cs` - Added SafeZone commands (create, list, delete) with full validation
+- `src/Main.cs` - Rebranded to Creatify, version update (0.2.4 → 0.3.0), author set to vlamz, SafeZone hot reload support
+- `src/Creatify.csproj` - Project renamed from BlockMaker.csproj
+- `project.sln` - Solution updated for Creatify project
+- `src/Config.cs` - Prefix updated to "Creatify", added SafeZone configuration settings (`Settings.SafeZone`)
+- `src/Commands.cs` - Menu title updated, added SafeZone commands (create, list, delete, edit) with full validation
 - `src/Events.cs` - Added SafeZone tick processing, damage blocking hook, player cleanup
 - `src/Files.cs` - Added SafeZone save/load functionality (`SafeZoneData` class)
-- `src/SafeZone.cs` - New SafeZone system implementation (250+ lines)
-- `src/Utils/Utils.cs` - Added SafeZone cleanup to Clear() function
+- `src/SafeZone.cs` - New SafeZone module in `Creatify.Modules` namespace, complete implementation (550+ lines)
+- `src/Utils/Utils.cs` - Entity name prefixes updated to "creatify", added SafeZone cleanup to Clear() function
+- `src/Blocks/Blocks.cs` - Entity names updated to use "creatify" prefix
+- `src/Blocks/Models.cs` - Config file reference updated to "Creatify.json"
+- `src/Teleports.cs` - Entity names updated to "creatify_Teleport_"
+- `src/Lights.cs` - Entity names updated to "creatify_light" and "creatify_light_entity"
+- `src/Blocks/Action.cs` - Entity name checks updated to "creatify" prefix
 
 **What Changed:**
 1. **SafeZone.cs** - Yeni dosya eklendi, zone yönetimi, pozisyon kontrolü, healing timer sistemi
@@ -712,6 +729,7 @@ If you're upgrading from version 0.2.4:
 - New config section `Settings.SafeZone` added with default values
 - SafeZone commands are available (see Commands section above for details)
 
-<br> <a href="https://ko-fi.com/exkludera" target="blank"><img src="https://cdn.ko-fi.com/cdn/kofi5.png" height="48px" alt="Buy Me a Coffee at ko-fi.com"></a>
+<br>
 
-**Note:** Support the original author exkludera via the Ko-fi link above.
+**Creatify** - Professional CS2 Building & SafeZone Plugin  
+**Developed by vlamz** | Version 0.3.0

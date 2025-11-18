@@ -3,6 +3,7 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 using CS2MenuManager.API.Class;
 using CS2MenuManager.API.Interface;
+using Creatify.Modules;
 
 public partial class Menu
 {
@@ -39,6 +40,11 @@ public partial class Menu
         Menu.AddItem("Lights", (player, option) =>
         {
             Menu_Lights(player, menuType, Menu);
+        });
+
+        Menu.AddItem("SafeZones", (player, option) =>
+        {
+            Menu_SafeZones(player, menuType, Menu);
         });
 
         Menu.AddItem("Settings", (player, option) =>
@@ -546,6 +552,162 @@ public partial class Menu
         Menu.Display(player, 0);
     }
     /* Menu_Lights */
+
+    /* Menu_SafeZones */
+
+    static void Menu_SafeZones(CCSPlayerController player, string menuType, IMenu Parent)
+    {
+        IMenu Menu = Create("SafeZones Menu", menuType, Parent);
+
+        Menu.AddItem("Create SafeZone", (player, option) =>
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Green}💬 Type zone name in chat: {ChatColors.White}!safezone <name>");
+            Menu_SafeZones(player, menuType, Parent);
+        });
+
+        Menu.AddItem("List SafeZones", (player, option) =>
+        {
+            Commands.ListSafeZones(player, "");
+            Menu_SafeZones(player, menuType, Parent);
+        });
+
+        Menu.AddItem("Delete SafeZone", (player, option) =>
+        {
+            if (SafeZone.Zones.Count == 0)
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}❌ No SafeZones found on this map");
+                Menu_SafeZones(player, menuType, Parent);
+                return;
+            }
+
+            SafeZoneDeleteMenu(player, menuType, Menu);
+        });
+
+        Menu.AddItem("Edit SafeZone", (player, option) =>
+        {
+            if (SafeZone.Zones.Count == 0)
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}❌ No SafeZones found on this map");
+                Menu_SafeZones(player, menuType, Parent);
+                return;
+            }
+
+            SafeZoneEditMenu(player, menuType, Menu);
+        });
+
+        Menu.Display(player, 0);
+    }
+
+    static void SafeZoneDeleteMenu(CCSPlayerController player, string menuType, IMenu Parent)
+    {
+        IMenu Menu = Create("Delete SafeZone", menuType, Parent);
+
+        foreach (var zone in SafeZone.Zones.Values.OrderBy(z => z.Id))
+        {
+            Menu.AddItem($"ID {zone.Id}: {zone.Name}", (player, option) =>
+            {
+                Commands.DeleteSafeZone(player, zone.Id.ToString());
+                Menu_SafeZones(player, menuType, Parent.PrevMenu ?? Parent);
+            });
+        }
+
+        Menu.Display(player, 0);
+    }
+
+    static void SafeZoneEditMenu(CCSPlayerController player, string menuType, IMenu Parent)
+    {
+        IMenu Menu = Create("Select SafeZone to Edit", menuType, Parent);
+
+        foreach (var zone in SafeZone.Zones.Values.OrderBy(z => z.Id))
+        {
+            Menu.AddItem($"ID {zone.Id}: {zone.Name}", (player, option) =>
+            {
+                SafeZoneEditPropertiesMenu(player, menuType, Menu, zone);
+            });
+        }
+
+        Menu.Display(player, 0);
+    }
+
+    static void SafeZoneEditPropertiesMenu(CCSPlayerController player, string menuType, IMenu Parent, SafeZone.ZoneData zone)
+    {
+        IMenu Menu = Create($"Edit Zone: {zone.Name}", menuType, Parent);
+
+        Menu.AddItem($"Godmode: {(zone.Godmode ? "ON" : "OFF")}", (player, option) =>
+        {
+            Commands.EditSafeZone(player, $"{zone.Id} godmode {(zone.Godmode ? "off" : "on")}");
+            var updatedZone = SafeZone.GetZone(zone.Id);
+            if (updatedZone != null)
+                SafeZoneEditPropertiesMenu(player, menuType, Parent, updatedZone);
+            else
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}❌ SafeZone no longer exists");
+                SafeZoneEditMenu(player, menuType, Parent);
+            }
+        });
+
+        Menu.AddItem($"Healing: {(zone.Healing ? "ON" : "OFF")}", (player, option) =>
+        {
+            Commands.EditSafeZone(player, $"{zone.Id} healing {(zone.Healing ? "off" : "on")}");
+            var updatedZone = SafeZone.GetZone(zone.Id);
+            if (updatedZone != null)
+                SafeZoneEditPropertiesMenu(player, menuType, Parent, updatedZone);
+            else
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}❌ SafeZone no longer exists");
+                SafeZoneEditMenu(player, menuType, Parent);
+            }
+        });
+
+        if (zone.Healing)
+        {
+            Menu.AddItem($"Healing Amount: {zone.HealingAmount:F1}", (player, option) =>
+            {
+                var builderData = Instance.BuilderData[player.Slot];
+                builderData.ChatInput = $"SafeZoneHealingAmount_{zone.Id}";
+                Utils.PrintToChat(player, $"{ChatColors.Green}💬 Type healing amount in chat (current: {ChatColors.White}{zone.HealingAmount:F1}{ChatColors.Green})");
+                SafeZoneEditPropertiesMenu(player, menuType, Parent, zone);
+            });
+
+            Menu.AddItem($"Healing Interval: {zone.HealingInterval:F1}s", (player, option) =>
+            {
+                var builderData = Instance.BuilderData[player.Slot];
+                builderData.ChatInput = $"SafeZoneHealingInterval_{zone.Id}";
+                Utils.PrintToChat(player, $"{ChatColors.Green}💬 Type healing interval in chat (current: {ChatColors.White}{zone.HealingInterval:F1}s{ChatColors.Green})");
+                SafeZoneEditPropertiesMenu(player, menuType, Parent, zone);
+            });
+        }
+
+        Menu.AddItem($"Notify: {(zone.Notify ? "ON" : "OFF")}", (player, option) =>
+        {
+            Commands.EditSafeZone(player, $"{zone.Id} notify {(zone.Notify ? "off" : "on")}");
+            var updatedZone = SafeZone.GetZone(zone.Id);
+            if (updatedZone != null)
+                SafeZoneEditPropertiesMenu(player, menuType, Parent, updatedZone);
+            else
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}❌ SafeZone no longer exists");
+                SafeZoneEditMenu(player, menuType, Parent);
+            }
+        });
+
+        Menu.AddItem($"Block Damage: {(zone.BlockDamageToOutside ? "ON" : "OFF")}", (player, option) =>
+        {
+            Commands.EditSafeZone(player, $"{zone.Id} blockdamage {(zone.BlockDamageToOutside ? "off" : "on")}");
+            var updatedZone = SafeZone.GetZone(zone.Id);
+            if (updatedZone != null)
+                SafeZoneEditPropertiesMenu(player, menuType, Parent, updatedZone);
+            else
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}❌ SafeZone no longer exists");
+                SafeZoneEditMenu(player, menuType, Parent);
+            }
+        });
+
+        Menu.Display(player, 0);
+    }
+
+    /* Menu_SafeZones */
 
     /* Menu_Settings */
 

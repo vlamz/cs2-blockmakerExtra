@@ -1,10 +1,13 @@
-﻿using CounterStrikeSharp.API;
+﻿// Creatify - Commands Module
+// Developed by vlamz
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
 using CS2TraceRay.Class;
 using CS2TraceRay.Enum;
 using CS2TraceRay.Struct;
+using Creatify.Modules;
 using FixVectorLeak;
 
 public static class Commands
@@ -215,7 +218,7 @@ public static class Commands
         if (!Utils.BuildMode(player))
             return;
 
-        Menu.Open(player, "Block Maker");
+        Menu.Open(player, "Creatify");
     }
 
     public static void BlockType(CCSPlayerController? player, string selectType)
@@ -538,24 +541,24 @@ public static class Commands
         var trimmedName = input.Trim();
         if (string.IsNullOrWhiteSpace(trimmedName))
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Usage: {ChatColors.White}!safezone <name>");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Usage: {ChatColors.White}!safezone <name>");
             Utils.PrintToChat(player, $"{ChatColors.Grey}First use sets position 1 at your crosshair, second use sets position 2 and creates the zone");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Use {ChatColors.White}!zonepos1{ChatColors.Grey} to update position 1, {ChatColors.White}!zonepos2{ChatColors.Grey} to update position 2");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Use {ChatColors.White}!zoneconfirm{ChatColors.Grey} to confirm and create, {ChatColors.White}!zonecancel{ChatColors.Grey} to cancel");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Use {ChatColors.Green}!zonepos1{ChatColors.Grey} to update position 1, {ChatColors.Green}!zonepos2{ChatColors.Grey} to update position 2");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Use {ChatColors.Green}!zoneconfirm{ChatColors.Grey} to confirm and create, {ChatColors.Red}!zonecancel{ChatColors.Grey} to cancel");
             return;
         }
 
         // Validate name length
         if (trimmedName.Length > 64)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Zone name too long (max 64 characters)");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Zone name too long (max 64 characters)");
             return;
         }
 
         var pawn = player.Pawn();
         if (pawn == null || pawn.AbsOrigin == null)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Could not get your position");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Could not get your position");
             return;
         }
 
@@ -563,7 +566,7 @@ public static class Commands
         CS2TraceRay.Struct.CGameTrace? trace = CS2TraceRay.Class.TraceRay.TraceShape(player.GetEyePosition()!, pawn.EyeAngles, CS2TraceRay.Enum.TraceMask.MaskShot, player);
         if (trace == null || !trace.HasValue || trace.Value.Position.Length() == 0)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Could not get crosshair position");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Could not get crosshair position");
             return;
         }
 
@@ -574,7 +577,7 @@ public static class Commands
         if (float.IsNaN(crosshairPos.X) || float.IsNaN(crosshairPos.Y) || float.IsNaN(crosshairPos.Z) ||
             float.IsInfinity(crosshairPos.X) || float.IsInfinity(crosshairPos.Y) || float.IsInfinity(crosshairPos.Z))
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Invalid position detected");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Invalid position detected");
             return;
         }
 
@@ -583,8 +586,8 @@ public static class Commands
         {
             // Second position - update Position2
             pending.Position2 = crosshairPos;
-            Utils.PrintToChat(player, $"{ChatColors.Green}Position 2 set at crosshair. Use {ChatColors.White}!zoneconfirm{ChatColors.Green} to create zone '{ChatColors.White}{pending.ZoneName}{ChatColors.Green}'");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Or use {ChatColors.White}!zonepos1{ChatColors.Grey} or {ChatColors.White}!zonepos2{ChatColors.Grey} to adjust positions, {ChatColors.White}!zonecancel{ChatColors.Grey} to cancel");
+            Utils.PrintToChat(player, $"{ChatColors.Green}✅ Position 2 set! Use {ChatColors.White}!zoneconfirm{ChatColors.Green} to create zone '{ChatColors.White}{pending.ZoneName}{ChatColors.Green}'");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Adjust: {ChatColors.Green}!zonepos1{ChatColors.Grey} or {ChatColors.Green}!zonepos2{ChatColors.Grey} | Cancel: {ChatColors.Red}!zonecancel");
         }
         else
         {
@@ -595,8 +598,8 @@ public static class Commands
                 Position2 = null,
                 ZoneName = trimmedName
             };
-            Utils.PrintToChat(player, $"{ChatColors.Green}Position 1 set at crosshair. Aim at second corner and use the command again to set position 2");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Use {ChatColors.White}!zonepos1{ChatColors.Grey} to update position 1, {ChatColors.White}!zonecancel{ChatColors.Grey} to cancel");
+            Utils.PrintToChat(player, $"{ChatColors.Green}✅ Position 1 set! Aim at second corner and use {ChatColors.White}!safezone {trimmedName}{ChatColors.Green} again");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Update: {ChatColors.Green}!zonepos1{ChatColors.Grey} | Cancel: {ChatColors.Red}!zonecancel");
         }
     }
 
@@ -611,7 +614,7 @@ public static class Commands
         var zoneIdOrName = input.Trim();
         if (SafeZone.Zones.Count == 0)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}No SafeZones found on this map");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ No SafeZones found on this map");
             return;
         }
 
@@ -633,33 +636,37 @@ public static class Commands
 
             if (zone == null)
             {
-                Utils.PrintToChat(player, $"{ChatColors.Red}SafeZone not found: {ChatColors.White}{zoneIdOrName}");
+                Utils.PrintToChat(player, $"{ChatColors.Red}❌ SafeZone not found: {ChatColors.White}{zoneIdOrName}");
                 return;
             }
 
             // Show detailed info
-            Utils.PrintToChat(player, $"{ChatColors.Green}=== SafeZone Details ===");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}ID: {ChatColors.White}{zone.Id}");
+            Utils.PrintToChat(player, $"{ChatColors.Green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Utils.PrintToChat(player, $"{ChatColors.Green}  SafeZone Details");
+            Utils.PrintToChat(player, $"{ChatColors.Green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}ID: {ChatColors.Green}{zone.Id}");
             Utils.PrintToChat(player, $"{ChatColors.Grey}Name: {ChatColors.White}{zone.Name}");
             Utils.PrintToChat(player, $"{ChatColors.Grey}Creator: {ChatColors.White}{zone.Creator}");
             Utils.PrintToChat(player, $"{ChatColors.Grey}Created: {ChatColors.White}{zone.CreatedAt:yyyy-MM-dd HH:mm}");
             Utils.PrintToChat(player, $"{ChatColors.Grey}Position 1: {ChatColors.White}({zone.MinPosition.X:F1}, {zone.MinPosition.Y:F1}, {zone.MinPosition.Z:F1})");
             Utils.PrintToChat(player, $"{ChatColors.Grey}Position 2: {ChatColors.White}({zone.MaxPosition.X:F1}, {zone.MaxPosition.Y:F1}, {zone.MaxPosition.Z:F1})");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Godmode: {(zone.Godmode ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")}");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Healing: {(zone.Healing ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")} {(zone.Healing ? $"(+{zone.HealingAmount} HP every {zone.HealingInterval}s)" : "")}");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Notify: {(zone.Notify ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")}");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Block Damage to Outside: {(zone.BlockDamageToOutside ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Godmode: {(zone.Godmode ? ChatColors.Green + "✅ ON" : ChatColors.Red + "❌ OFF")}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Healing: {(zone.Healing ? ChatColors.Green + "✅ ON" : ChatColors.Red + "❌ OFF")} {(zone.Healing ? ChatColors.White + $"(+{zone.HealingAmount} HP every {zone.HealingInterval}s)" : "")}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Notify: {(zone.Notify ? ChatColors.Green + "✅ ON" : ChatColors.Red + "❌ OFF")}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Block Damage: {(zone.BlockDamageToOutside ? ChatColors.Green + "✅ ON" : ChatColors.Red + "❌ OFF")}");
         }
         else
         {
             // List all zones
-            Utils.PrintToChat(player, $"{ChatColors.Green}=== SafeZones ({ChatColors.White}{SafeZone.Zones.Count}{ChatColors.Green}) ===");
+            Utils.PrintToChat(player, $"{ChatColors.Green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Utils.PrintToChat(player, $"{ChatColors.Green}  SafeZones ({ChatColors.White}{SafeZone.Zones.Count}{ChatColors.Green})");
+            Utils.PrintToChat(player, $"{ChatColors.Green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             foreach (var zone in SafeZone.Zones.Values.OrderBy(z => z.Id))
             {
-                Utils.PrintToChat(player, $"{ChatColors.Grey}ID {ChatColors.White}{zone.Id}{ChatColors.Grey}: {ChatColors.White}{zone.Name} {ChatColors.Grey}({zone.Creator})");
-                Utils.PrintToChat(player, $"{ChatColors.Grey}  Godmode: {(zone.Godmode ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")} | Healing: {(zone.Healing ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")} | Notify: {(zone.Notify ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")} | Block Damage: {(zone.BlockDamageToOutside ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")}");
+                Utils.PrintToChat(player, $"{ChatColors.Grey}ID {ChatColors.Green}{zone.Id}{ChatColors.Grey}: {ChatColors.White}{zone.Name} {ChatColors.Grey}(by {ChatColors.White}{zone.Creator}{ChatColors.Grey})");
+                Utils.PrintToChat(player, $"{ChatColors.Grey}  {(zone.Godmode ? ChatColors.Green + "✓" : ChatColors.Red + "✗")} Godmode | {(zone.Healing ? ChatColors.Green + "✓" : ChatColors.Red + "✗")} Healing | {(zone.Notify ? ChatColors.Green + "✓" : ChatColors.Red + "✗")} Notify | {(zone.BlockDamageToOutside ? ChatColors.Green + "✓" : ChatColors.Red + "✗")} Block Damage");
             }
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Use {ChatColors.White}!listzone <id/name>{ChatColors.Grey} for details");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Use {ChatColors.Green}!listzone <id/name>{ChatColors.Grey} for details");
         }
     }
 
@@ -674,7 +681,7 @@ public static class Commands
         var zoneIdOrName = input.Trim();
         if (string.IsNullOrEmpty(zoneIdOrName))
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Usage: {ChatColors.White}!deletezone <id/name>");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Usage: {ChatColors.White}!deletezone <id/name>");
             return;
         }
 
@@ -693,18 +700,18 @@ public static class Commands
 
         if (zone == null)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}SafeZone not found: {ChatColors.White}{zoneIdOrName}");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ SafeZone not found: {ChatColors.White}{zoneIdOrName}");
             return;
         }
 
         if (SafeZone.DeleteZone(zone.Id))
         {
-            Utils.PrintToChat(player, $"{ChatColors.Green}SafeZone '{ChatColors.White}{zone.Name}{ChatColors.Green}' (ID: {ChatColors.White}{zone.Id}{ChatColors.Green}) deleted");
+            Utils.PrintToChat(player, $"{ChatColors.Green}✅ SafeZone '{ChatColors.White}{zone.Name}{ChatColors.Green}' (ID: {ChatColors.Green}{zone.Id}{ChatColors.Green}) deleted successfully");
             Files.SafeZoneData.Save();
         }
         else
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Failed to delete SafeZone");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Failed to delete SafeZone");
         }
     }
 
@@ -720,14 +727,14 @@ public static class Commands
         
         if (parts.Length < 3)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Usage: {ChatColors.White}!zoneedit <id/name> <property> <value>");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Properties: {ChatColors.White}godmode, healing, healingamount, healinginterval, notify, blockdamage");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}Values: {ChatColors.White}on/off/true/false{ChatColors.Grey} (for bool) or {ChatColors.White}<number>{ChatColors.Grey} (for amount/interval)");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Usage: {ChatColors.White}!zoneedit <id/name> <property> <value>");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Properties: {ChatColors.Green}godmode{ChatColors.Grey}, {ChatColors.Green}healing{ChatColors.Grey}, {ChatColors.Green}healingamount{ChatColors.Grey}, {ChatColors.Green}healinginterval{ChatColors.Grey}, {ChatColors.Green}notify{ChatColors.Grey}, {ChatColors.Green}blockdamage");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Values: {ChatColors.Green}on/off/true/false{ChatColors.Grey} (for bool) or {ChatColors.Green}<number>{ChatColors.Grey} (for amount/interval)");
             Utils.PrintToChat(player, $"{ChatColors.Grey}Examples:");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}  !zoneedit 1 godmode on");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}  !zoneedit SpawnArea healing off");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}  !zoneedit 1 healingamount 5.0");
-            Utils.PrintToChat(player, $"{ChatColors.Grey}  !zoneedit 1 healinginterval 2.0");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}  {ChatColors.White}!zoneedit 1 godmode on");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}  {ChatColors.White}!zoneedit SpawnArea healing off");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}  {ChatColors.White}!zoneedit 1 healingamount 5.0");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}  {ChatColors.White}!zoneedit 1 healinginterval 2.0");
             return;
         }
 
@@ -750,7 +757,7 @@ public static class Commands
 
         if (zone == null)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}SafeZone not found: {ChatColors.White}{zoneIdOrName}");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ SafeZone not found: {ChatColors.White}{zoneIdOrName}");
             return;
         }
 
@@ -793,7 +800,7 @@ public static class Commands
                     {
                         if (healingAmount <= 0 || float.IsNaN(healingAmount) || float.IsInfinity(healingAmount))
                         {
-                            Utils.PrintToChat(player, $"{ChatColors.Red}Invalid healing amount. Must be a positive number.");
+                            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Invalid healing amount. Must be a positive number.");
                             return;
                         }
                         zone.HealingAmount = healingAmount;
@@ -802,7 +809,7 @@ public static class Commands
                     }
                     else
                     {
-                        Utils.PrintToChat(player, $"{ChatColors.Red}Invalid healing amount. Must be a number.");
+                        Utils.PrintToChat(player, $"{ChatColors.Red}❌ Invalid healing amount. Must be a number.");
                         return;
                     }
                     break;
@@ -812,7 +819,7 @@ public static class Commands
                     {
                         if (healingInterval <= 0 || float.IsNaN(healingInterval) || float.IsInfinity(healingInterval))
                         {
-                            Utils.PrintToChat(player, $"{ChatColors.Red}Invalid healing interval. Must be a positive number (minimum 0.1).");
+                            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Invalid healing interval. Must be a positive number (minimum 0.1).");
                             return;
                         }
                         zone.HealingInterval = Math.Max(0.1f, healingInterval);
@@ -835,7 +842,7 @@ public static class Commands
                     }
                     else
                     {
-                        Utils.PrintToChat(player, $"{ChatColors.Red}Invalid healing interval. Must be a number.");
+                        Utils.PrintToChat(player, $"{ChatColors.Red}❌ Invalid healing interval. Must be a number.");
                         return;
                     }
                     break;
@@ -855,8 +862,8 @@ public static class Commands
                     break;
 
                 default:
-                    Utils.PrintToChat(player, $"{ChatColors.Red}Unknown property: {ChatColors.White}{property}");
-                    Utils.PrintToChat(player, $"{ChatColors.Grey}Valid properties: {ChatColors.White}godmode, healing, healingamount, healinginterval, notify, blockdamage");
+                    Utils.PrintToChat(player, $"{ChatColors.Red}❌ Unknown property: {ChatColors.White}{property}");
+                    Utils.PrintToChat(player, $"{ChatColors.Grey}Valid properties: {ChatColors.Green}godmode{ChatColors.Grey}, {ChatColors.Green}healing{ChatColors.Grey}, {ChatColors.Green}healingamount{ChatColors.Grey}, {ChatColors.Green}healinginterval{ChatColors.Grey}, {ChatColors.Green}notify{ChatColors.Grey}, {ChatColors.Green}blockdamage");
                     return;
             }
 
@@ -864,23 +871,23 @@ public static class Commands
             {
                 string valueDisplay = property switch
                 {
-                    "godmode" => zone.Godmode ? "ON" : "OFF",
-                    "healing" => zone.Healing ? "ON" : "OFF",
-                    "healingamount" => zone.HealingAmount.ToString("F1"),
-                    "healinginterval" => zone.HealingInterval.ToString("F1"),
-                    "notify" => zone.Notify ? "ON" : "OFF",
-                    "blockdamage" => zone.BlockDamageToOutside ? "ON" : "OFF",
-                    _ => valueStr
+                    "godmode" => zone.Godmode ? ChatColors.Green + "ON" : ChatColors.Red + "OFF",
+                    "healing" => zone.Healing ? ChatColors.Green + "ON" : ChatColors.Red + "OFF",
+                    "healingamount" => ChatColors.White + zone.HealingAmount.ToString("F1"),
+                    "healinginterval" => ChatColors.White + zone.HealingInterval.ToString("F1"),
+                    "notify" => zone.Notify ? ChatColors.Green + "ON" : ChatColors.Red + "OFF",
+                    "blockdamage" => zone.BlockDamageToOutside ? ChatColors.Green + "ON" : ChatColors.Red + "OFF",
+                    _ => ChatColors.White + valueStr
                 };
 
-                Utils.PrintToChat(player, $"{ChatColors.Green}SafeZone '{ChatColors.White}{zone.Name}{ChatColors.Green}' (ID: {ChatColors.White}{zone.Id}{ChatColors.Green}):");
-                Utils.PrintToChat(player, $"{ChatColors.Grey}{propertyDisplay}: {ChatColors.White}{valueDisplay}");
+                Utils.PrintToChat(player, $"{ChatColors.Green}✅ SafeZone '{ChatColors.White}{zone.Name}{ChatColors.Green}' (ID: {ChatColors.Green}{zone.Id}{ChatColors.Green}) updated:");
+                Utils.PrintToChat(player, $"{ChatColors.Grey}{propertyDisplay}: {valueDisplay}");
                 Files.SafeZoneData.Save();
             }
         }
         catch (Exception ex)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Failed to edit SafeZone: {ex.Message}");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Failed to edit SafeZone: {ex.Message}");
             Utils.Log($"Error editing SafeZone: {ex.Message}");
         }
     }
@@ -895,14 +902,14 @@ public static class Commands
 
         if (!SafeZone.PendingPositions.TryGetValue(player, out var pending) || pending == null)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}No pending SafeZone creation found. Use {ChatColors.White}!safezone <name>{ChatColors.Red} first");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ No pending SafeZone creation found. Use {ChatColors.White}!safezone <name>{ChatColors.Red} first");
             return;
         }
 
         var pawn = player.Pawn();
         if (pawn == null || pawn.AbsOrigin == null)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Could not get your position");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Could not get your position");
             return;
         }
 
@@ -910,7 +917,7 @@ public static class Commands
         CS2TraceRay.Struct.CGameTrace? trace = CS2TraceRay.Class.TraceRay.TraceShape(player.GetEyePosition()!, pawn.EyeAngles, CS2TraceRay.Enum.TraceMask.MaskShot, player);
         if (trace == null || !trace.HasValue || trace.Value.Position.Length() == 0)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Could not get crosshair position");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Could not get crosshair position");
             return;
         }
 
@@ -921,12 +928,12 @@ public static class Commands
         if (float.IsNaN(crosshairPos.X) || float.IsNaN(crosshairPos.Y) || float.IsNaN(crosshairPos.Z) ||
             float.IsInfinity(crosshairPos.X) || float.IsInfinity(crosshairPos.Y) || float.IsInfinity(crosshairPos.Z))
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Invalid position detected");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Invalid position detected");
             return;
         }
 
         pending.Position1 = crosshairPos;
-        Utils.PrintToChat(player, $"{ChatColors.Green}Position 1 updated at crosshair for zone '{ChatColors.White}{pending.ZoneName}{ChatColors.Green}'");
+        Utils.PrintToChat(player, $"{ChatColors.Green}✅ Position 1 updated for zone '{ChatColors.White}{pending.ZoneName}{ChatColors.Green}'");
     }
 
     public static void UpdateSafeZonePos2(CCSPlayerController? player, string input = "")
@@ -939,14 +946,14 @@ public static class Commands
 
         if (!SafeZone.PendingPositions.TryGetValue(player, out var pending) || pending == null)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}No pending SafeZone creation found. Use {ChatColors.White}!safezone <name>{ChatColors.Red} first");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ No pending SafeZone creation found. Use {ChatColors.White}!safezone <name>{ChatColors.Red} first");
             return;
         }
 
         var pawn = player.Pawn();
         if (pawn == null || pawn.AbsOrigin == null)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Could not get your position");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Could not get your position");
             return;
         }
 
@@ -954,7 +961,7 @@ public static class Commands
         CS2TraceRay.Struct.CGameTrace? trace = CS2TraceRay.Class.TraceRay.TraceShape(player.GetEyePosition()!, pawn.EyeAngles, CS2TraceRay.Enum.TraceMask.MaskShot, player);
         if (trace == null || !trace.HasValue || trace.Value.Position.Length() == 0)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Could not get crosshair position");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Could not get crosshair position");
             return;
         }
 
@@ -965,12 +972,12 @@ public static class Commands
         if (float.IsNaN(crosshairPos.X) || float.IsNaN(crosshairPos.Y) || float.IsNaN(crosshairPos.Z) ||
             float.IsInfinity(crosshairPos.X) || float.IsInfinity(crosshairPos.Y) || float.IsInfinity(crosshairPos.Z))
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Invalid position detected");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Invalid position detected");
             return;
         }
 
         pending.Position2 = crosshairPos;
-        Utils.PrintToChat(player, $"{ChatColors.Green}Position 2 updated at crosshair for zone '{ChatColors.White}{pending.ZoneName}{ChatColors.Green}'");
+        Utils.PrintToChat(player, $"{ChatColors.Green}✅ Position 2 updated for zone '{ChatColors.White}{pending.ZoneName}{ChatColors.Green}'");
     }
 
     public static void ConfirmSafeZone(CCSPlayerController? player, string input = "")
@@ -983,13 +990,13 @@ public static class Commands
 
         if (!SafeZone.PendingPositions.TryGetValue(player, out var pending) || pending == null)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}No pending SafeZone creation found. Use {ChatColors.White}!safezone <name>{ChatColors.Red} first");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ No pending SafeZone creation found. Use {ChatColors.White}!safezone <name>{ChatColors.Red} first");
             return;
         }
 
         if (!pending.Position2.HasValue)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Position 2 not set. Use {ChatColors.White}!safezone {pending.ZoneName}{ChatColors.Red} or {ChatColors.White}!zonepos2{ChatColors.Red} to set position 2");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Position 2 not set. Use {ChatColors.White}!safezone {pending.ZoneName}{ChatColors.Red} or {ChatColors.White}!zonepos2{ChatColors.Red} to set position 2");
             return;
         }
 
@@ -1016,20 +1023,23 @@ public static class Commands
             SafeZone.PendingPositions.Remove(player);
             SafeZone.ClearPreview(player);
 
-            Utils.PrintToChat(player, $"{ChatColors.Green}SafeZone '{ChatColors.White}{zoneName}{ChatColors.Green}' created! (ID: {ChatColors.White}{zoneId}{ChatColors.Green})");
+            Utils.PrintToChat(player, $"{ChatColors.Green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Utils.PrintToChat(player, $"{ChatColors.Green}✅ SafeZone '{ChatColors.White}{zoneName}{ChatColors.Green}' created!");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}ID: {ChatColors.Green}{zoneId}{ChatColors.Grey} | Use {ChatColors.Green}!listzone {zoneId}{ChatColors.Grey} for details");
+            Utils.PrintToChat(player, $"{ChatColors.Green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             Files.SafeZoneData.Save();
         }
         catch (ArgumentException ex)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}{ex.Message}");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ {ex.Message}");
         }
         catch (InvalidOperationException ex)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}{ex.Message}");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ {ex.Message}");
         }
         catch (Exception ex)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}Failed to create SafeZone: {ex.Message}");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ Failed to create SafeZone: {ex.Message}");
             Utils.Log($"Error creating SafeZone: {ex.Message}");
         }
     }
@@ -1044,7 +1054,7 @@ public static class Commands
 
         if (!SafeZone.PendingPositions.TryGetValue(player, out var pending) || pending == null)
         {
-            Utils.PrintToChat(player, $"{ChatColors.Red}No pending SafeZone creation found");
+            Utils.PrintToChat(player, $"{ChatColors.Red}❌ No pending SafeZone creation found");
             return;
         }
 
@@ -1052,6 +1062,6 @@ public static class Commands
         SafeZone.PendingPositions.Remove(player);
         SafeZone.ClearPreview(player);
 
-        Utils.PrintToChat(player, $"{ChatColors.Red}SafeZone creation cancelled for '{ChatColors.White}{zoneName}{ChatColors.Red}'");
+        Utils.PrintToChat(player, $"{ChatColors.Red}❌ SafeZone creation cancelled for '{ChatColors.White}{zoneName}{ChatColors.Red}'");
     }
 }

@@ -637,10 +637,10 @@ public partial class Blocks
             return;
         }
 
-        if (block.Entity == null || !block.Entity.Name.StartsWith("blockmaker"))
+        if (block.Entity == null || !block.Entity.Name.StartsWith("creatify"))
             return;
 
-        Utils.PrintToChat(player, $"Testing - {ChatColors.White}{block.Entity!.Name.Replace("blockmaker_", "")}");
+        Utils.PrintToChat(player, $"Testing - {ChatColors.White}{block.Entity!.Name.Replace("creatify_", "")}");
         Actions(player, block);
     }
 }
