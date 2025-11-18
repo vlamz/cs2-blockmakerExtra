@@ -2,6 +2,10 @@
 
 **BlockMaker plugin to create and save blocks, mostly for HNS**
 
+> [!NOTE]
+> This is a fork by **vlamz** updated for CounterStrikeSharp v1.0.347
+> Original plugin by **exkludera**
+
 > block managing can be done within the building menu /bm
 >
 > hold USE button to grab block, look around to move, left and right click to change distance
@@ -21,7 +25,7 @@
 ### requirements
 
 - [MetaMod](https://github.com/alliedmodders/metamod-source)
-- [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp)
+- [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp) v1.0.347
 - [MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager)
 - [Block Maker Addon](https://steamcommunity.com/sharedfiles/filedetails/?id=3430295154)
 - [CS2MenuManager](https://github.com/schwarper/CS2MenuManager)
@@ -30,9 +34,14 @@
 <br>
 
 > [!NOTE]
-> thanks to [UgurhanK/BaseBuilder](https://github.com/UgurhanK/BaseBuilder) for the code base
+> **Fork Information:**
+> - Fork by: **vlamz**
+> - Original author: **exkludera**
+> - Updated for: CounterStrikeSharp v1.0.347
 >
-> inspired by [BlockBuilder by x3ro](https://forums.alliedmods.net/showthread.php?t=258329)
+> **Credits:**
+> - thanks to [UgurhanK/BaseBuilder](https://github.com/UgurhanK/BaseBuilder) for the code base
+> - inspired by [BlockBuilder by x3ro](https://forums.alliedmods.net/showthread.php?t=258329)
 
 <img src="https://github.com/user-attachments/assets/53e486cc-8da4-45ab-bc6e-eb38145aba36" height="200px"> <br>
 
@@ -543,4 +552,23 @@
 ```
 </details>
 
+<br>
+
+## Changes (vlamz fork)
+
+This fork includes the following updates:
+
+- ✅ Updated to CounterStrikeSharp v1.0.347
+- ✅ Fixed API compatibility issues
+- ✅ Updated author information to reflect fork status
+
+### Migration Notes
+
+If you're upgrading from an earlier version:
+- Make sure you have CounterStrikeSharp v1.0.347 or later installed
+- No configuration changes are required
+- All existing blocks and saves are compatible
+
 <br> <a href="https://ko-fi.com/exkludera" target="blank"><img src="https://cdn.ko-fi.com/cdn/kofi5.png" height="48px" alt="Buy Me a Coffee at ko-fi.com"></a>
+
+**Note:** Support the original author exkludera via the Ko-fi link above.
