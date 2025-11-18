@@ -416,5 +416,16 @@ public static class Utils
         Blocks.nuked = false;
 
         Building.PlayerHolds.Clear();
+
+        // Clean up SafeZone timers
+        foreach (var playerTimers in SafeZone.PlayerHealingTimers.Values)
+        {
+            foreach (var timer in playerTimers.Values)
+            {
+                timer?.Kill();
+            }
+        }
+        SafeZone.PlayerHealingTimers.Clear();
+        SafeZone.PendingPositions.Clear();
     }
 }

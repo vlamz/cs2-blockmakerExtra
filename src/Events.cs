@@ -15,7 +15,7 @@ public static class Events
 
     public static void Register()
     {
-        Instance.RegisterListener<Listeners.OnTick>(Building.OnTick);
+        Instance.RegisterListener<Listeners.OnTick>(OnTick);
         Instance.RegisterListener<Listeners.OnMapStart>(OnMapStart);
         Instance.RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
         Instance.RegisterListener<Listeners.OnServerPrecacheResources>(OnServerPrecacheResources);
@@ -38,7 +38,7 @@ public static class Events
 
     public static void Deregister()
     {
-        Instance.RemoveListener<Listeners.OnTick>(Building.OnTick);
+        Instance.RemoveListener<Listeners.OnTick>(OnTick);
         Instance.RemoveListener<Listeners.OnMapStart>(OnMapStart);
         Instance.RemoveListener<Listeners.OnMapEnd>(OnMapEnd);
         Instance.RemoveListener<Listeners.OnServerPrecacheResources>(OnServerPrecacheResources);
@@ -60,10 +60,52 @@ public static class Events
     }
 
     public static Timer? AutoSaveTimer;
+    private static Dictionary<CCSPlayerController, SafeZone.ZoneData?> LastPlayerZones = new();
+
+    private static void OnTick()
+    {
+        Building.OnTick();
+        
+        // Get players once for both operations
+        var players = Utilities.GetPlayers().Where(p => p.IsLegal() && p.IsAlive()).ToList();
+        
+        SafeZone.OnTick();
+
+        // Handle zone entry/exit notifications
+        foreach (var player in players)
+        {
+            if (player == null || !player.IsValid)
+                continue;
+
+            var currentZone = SafeZone.GetPlayerZone(player);
+            var lastZone = LastPlayerZones.TryGetValue(player, out var zone) ? zone : null;
+
+            if (currentZone != lastZone)
+            {
+                if (currentZone != null)
+                    SafeZone.NotifyPlayer(player, currentZone, true);
+                else if (lastZone != null)
+                    SafeZone.NotifyPlayer(player, lastZone, false);
+
+                LastPlayerZones[player] = currentZone;
+            }
+        }
+
+        // Clean up disconnected players from LastPlayerZones
+        var connectedPlayerSet = new HashSet<CCSPlayerController>(players);
+        var disconnectedPlayers = LastPlayerZones.Keys.Where(p => !connectedPlayerSet.Contains(p)).ToList();
+        foreach (var player in disconnectedPlayers)
+        {
+            LastPlayerZones.Remove(player);
+        }
+    }
+
     private static void OnMapStart(string mapname)
     {
         Files.mapsFolder = Path.Combine(Instance.ModuleDirectory, "maps", Server.MapName);
         Directory.CreateDirectory(Files.mapsFolder);
+
+        Files.SafeZoneData.Load();
 
         if (Config.Settings.Building.AutoSave.Enable)
         {
@@ -90,6 +132,8 @@ public static class Events
     private static void OnMapEnd()
     {
         Utils.Clear();
+        SafeZone.Initialize();
+        LastPlayerZones.Clear();
     }
 
     private static void OnServerPrecacheResources(ResourceManifest manifest)
@@ -143,6 +187,7 @@ public static class Events
     {
         Utils.Clear();
         Files.EntitiesData.Load();
+        Files.SafeZoneData.Load();
 
         return HookResult.Continue;
     }
@@ -175,6 +220,23 @@ public static class Events
 
         if (Blocks.HiddenPlayers.TryGetValue(player, out var hiddenPlayer))
             Blocks.HiddenPlayers.Remove(player);
+
+        // Clean up SafeZone healing timers
+        if (SafeZone.PlayerHealingTimers.ContainsKey(player))
+        {
+            foreach (var timer in SafeZone.PlayerHealingTimers[player].Values)
+            {
+                timer?.Kill();
+            }
+            SafeZone.PlayerHealingTimers[player].Clear();
+            SafeZone.PlayerHealingTimers.Remove(player);
+        }
+
+        // Clean up SafeZone pending positions
+        SafeZone.PendingPositions.Remove(player);
+
+        // Clean up LastPlayerZones
+        LastPlayerZones.Remove(player);
 
         return HookResult.Continue;
     }
@@ -325,8 +387,28 @@ public static class Events
         var pawn = hook.GetParam<CCSPlayerPawn>(0);
         var info = hook.GetParam<CTakeDamageInfo>(1);
 
+        // Check SafeZone damage blocking
         if (pawn.DesignerName == "player" && info.Attacker.Value?.DesignerName == "player")
+        {
+            var attackerPawn = info.Attacker.Value.As<CCSPlayerPawn>();
+            var victimPawn = pawn.As<CCSPlayerPawn>();
+            
+            if (attackerPawn != null && victimPawn != null)
+            {
+                var attacker = attackerPawn.OriginalController?.Value?.As<CCSPlayerController>();
+                var victim = victimPawn.OriginalController?.Value?.As<CCSPlayerController>();
+
+                if (attacker != null && victim != null && attacker.IsValid && victim.IsValid)
+                {
+                    if (!SafeZone.CanPlayerDamage(attacker, victim))
+                    {
+                        return HookResult.Handled;
+                    }
+                }
+            }
+
             return HookResult.Continue;
+        }
 
         var blockModels = Blocks.Models.Data;
         string NoFallDmg = blockModels.NoFallDmg.Title;

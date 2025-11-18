@@ -287,4 +287,190 @@ public static partial class Files
             }
         }
     }
+
+    public static class SafeZoneData
+    {
+        public static void Save()
+        {
+            if (SafeZone.Zones.Count <= 0)
+            {
+                // Delete file if no zones
+                var safeZonePath = Path.Combine(mapsFolder, "safezones.json");
+                if (File.Exists(safeZonePath))
+                    File.Delete(safeZonePath);
+                return;
+            }
+
+            var safeZonePath2 = Path.Combine(mapsFolder, "safezones.json");
+
+            try
+            {
+                var zonesList = new List<SafeZone.SaveData>();
+
+                foreach (var zone in SafeZone.Zones.Values)
+                {
+                    zonesList.Add(new SafeZone.SaveData
+                    {
+                        Id = zone.Id,
+                        Name = zone.Name,
+                        MinPosition = zone.MinPosition,
+                        MaxPosition = zone.MaxPosition,
+                        Godmode = zone.Godmode,
+                        Healing = zone.Healing,
+                        HealingAmount = zone.HealingAmount,
+                        HealingInterval = zone.HealingInterval,
+                        Notify = zone.Notify,
+                        BlockDamageToOutside = zone.BlockDamageToOutside,
+                        Creator = zone.Creator,
+                        CreatedAt = zone.CreatedAt
+                    });
+                }
+
+                string zonesJson = JsonSerializer.Serialize(zonesList, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(safeZonePath2, zonesJson);
+
+                Utils.Log($"Saved {zonesList.Count} SafeZone(s) for {Server.MapName}");
+            }
+            catch (Exception ex)
+            {
+                Utils.Log($"Failed to save SafeZones: {ex.Message}");
+            }
+        }
+
+        public static void Load()
+        {
+            var safeZonePath = Path.Combine(mapsFolder, "safezones.json");
+
+            SafeZone.Initialize();
+
+            if (!File.Exists(safeZonePath))
+            {
+                Utils.Log($"No SafeZones file found for {Server.MapName}");
+                return;
+            }
+
+            if (!Utils.IsValidJson(safeZonePath))
+            {
+                Utils.Log($"Invalid SafeZones JSON file for {Server.MapName}, skipping load");
+                return;
+            }
+
+            try
+            {
+                var zonesJson = File.ReadAllText(safeZonePath);
+                var zonesList = JsonSerializer.Deserialize<List<SafeZone.SaveData>>(zonesJson);
+
+                if (zonesList == null || zonesList.Count == 0)
+                {
+                    Utils.Log($"No SafeZones data found for {Server.MapName}");
+                    return;
+                }
+
+                int maxId = 0;
+                int loadedCount = 0;
+                int skippedCount = 0;
+
+                foreach (var zoneData in zonesList)
+                {
+                    try
+                    {
+                        // Validate zone data
+                        if (zoneData.Id <= 0)
+                        {
+                            Utils.Log($"Skipping zone with invalid ID: {zoneData.Id}");
+                            skippedCount++;
+                            continue;
+                        }
+
+                        if (string.IsNullOrWhiteSpace(zoneData.Name))
+                        {
+                            Utils.Log($"Skipping zone with invalid name (ID: {zoneData.Id})");
+                            skippedCount++;
+                            continue;
+                        }
+
+                        // Validate positions
+                        if (float.IsNaN(zoneData.MinPosition.X) || float.IsNaN(zoneData.MinPosition.Y) || float.IsNaN(zoneData.MinPosition.Z) ||
+                            float.IsNaN(zoneData.MaxPosition.X) || float.IsNaN(zoneData.MaxPosition.Y) || float.IsNaN(zoneData.MaxPosition.Z) ||
+                            float.IsInfinity(zoneData.MinPosition.X) || float.IsInfinity(zoneData.MinPosition.Y) || float.IsInfinity(zoneData.MinPosition.Z) ||
+                            float.IsInfinity(zoneData.MaxPosition.X) || float.IsInfinity(zoneData.MaxPosition.Y) || float.IsInfinity(zoneData.MaxPosition.Z))
+                        {
+                            Utils.Log($"Skipping zone '{zoneData.Name}' (ID: {zoneData.Id}) with invalid positions");
+                            skippedCount++;
+                            continue;
+                        }
+
+                        // Validate healing values
+                        float healingAmount = zoneData.HealingAmount;
+                        float healingInterval = zoneData.HealingInterval;
+
+                        if (float.IsNaN(healingAmount) || float.IsInfinity(healingAmount) || healingAmount <= 0)
+                            healingAmount = 1.0f;
+
+                        if (float.IsNaN(healingInterval) || float.IsInfinity(healingInterval) || healingInterval <= 0)
+                            healingInterval = 1.0f;
+
+                        // Check for duplicate IDs
+                        if (SafeZone.Zones.ContainsKey(zoneData.Id))
+                        {
+                            Utils.Log($"Duplicate zone ID {zoneData.Id} found, skipping");
+                            skippedCount++;
+                            continue;
+                        }
+
+                        // Check for duplicate names
+                        if (SafeZone.Zones.Values.Any(z => z.Name.Equals(zoneData.Name, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            Utils.Log($"Duplicate zone name '{zoneData.Name}' found, skipping");
+                            skippedCount++;
+                            continue;
+                        }
+
+                        var zone = new SafeZone.ZoneData
+                        {
+                            Id = zoneData.Id,
+                            Name = zoneData.Name.Trim(),
+                            MinPosition = zoneData.MinPosition,
+                            MaxPosition = zoneData.MaxPosition,
+                            Godmode = zoneData.Godmode,
+                            Healing = zoneData.Healing,
+                            HealingAmount = healingAmount,
+                            HealingInterval = healingInterval,
+                            Notify = zoneData.Notify,
+                            BlockDamageToOutside = zoneData.BlockDamageToOutside,
+                            Creator = string.IsNullOrWhiteSpace(zoneData.Creator) ? "Unknown" : zoneData.Creator,
+                            CreatedAt = zoneData.CreatedAt
+                        };
+
+                        SafeZone.Zones[zone.Id] = zone;
+                        if (zone.Id > maxId)
+                            maxId = zone.Id;
+
+                        loadedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Utils.Log($"Error loading zone (ID: {zoneData.Id}): {ex.Message}");
+                        skippedCount++;
+                    }
+                }
+
+                // Set next ID to be higher than the max loaded ID
+                SafeZone.NextZoneId = maxId + 1;
+                if (SafeZone.NextZoneId <= 0)
+                    SafeZone.NextZoneId = 1;
+
+                Utils.Log($"Loaded {loadedCount} SafeZone(s) for {Server.MapName}" + 
+                         (skippedCount > 0 ? $" ({skippedCount} skipped)" : ""));
+            }
+            catch (JsonException ex)
+            {
+                Utils.Log($"Failed to parse SafeZones JSON for {Server.MapName}: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Utils.Log($"Failed to load SafeZones: {ex.Message}");
+            }
+        }
+    }
 }

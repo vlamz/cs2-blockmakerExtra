@@ -5,7 +5,7 @@ using CounterStrikeSharp.API.Core.Translations;
 public partial class Plugin : BasePlugin, IPluginConfig<Config>
 {
     public override string ModuleName => "Block Maker";
-    public override string ModuleVersion => "0.2.4";
+    public override string ModuleVersion => "0.3.0";
     public override string ModuleAuthor => "vlamz (fork by exkludera)";
 
     public static Plugin Instance = new();
@@ -36,6 +36,7 @@ public partial class Plugin : BasePlugin, IPluginConfig<Config>
             Utils.Clear();
 
             Files.EntitiesData.Load();
+            Files.SafeZoneData.Load();
         }
     }
 

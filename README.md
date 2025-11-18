@@ -105,6 +105,14 @@
     "Lights": {
       "Model": "models/generic/interior_lamp_kit_01/ilk01_lamp_01_bulb.vmdl",
       "HideModel": true
+    },
+    "SafeZone": {
+      "DefaultGodmode": true,
+      "DefaultHealing": false,
+      "DefaultHealingAmount": 1.0,
+      "DefaultHealingInterval": 1.0,
+      "DefaultNotify": true,
+      "DefaultBlockDamageToOutside": true
     }
   },
   "Commands": {
@@ -132,6 +140,11 @@
       "Noclip": ["nc"],
       "Godmode": ["god"],
       "TestBlock": ["testblock"]
+    },
+    "SafeZone": {
+      "Create": ["safezone", "sz"],
+      "List": ["listzone", "listzones", "zones"],
+      "Delete": ["deletezone", "removezone"]
     }
   },
   "Sounds": {
@@ -554,20 +567,130 @@
 
 <br>
 
+## Commands
+
+### Admin Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `!buildmode` | Enable/disable build mode for all players | `!buildmode` |
+| `!builder <steamid>` | Grant/remove builder access to a player | `!builder 76561197960287930` |
+| `!resetproperties` | Reset all block properties to defaults | `!resetproperties` |
+
+### Building Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `!bm` / `!buildmenu` | Open building menu | `!bm` |
+| `!create` | Create a block at your crosshair position | `!create` |
+| `!delete` | Delete the block you're looking at | `!delete` |
+| `!type <name>` | Set block type | `!type Speed` |
+| `!color <name>` | Set block color | `!color Red` |
+| `!rotate <angle>` | Rotate block | `!rotate 90` |
+| `!position <value>` | Move block position | `!position 8` |
+| `!copy` | Copy block properties | `!copy` |
+| `!convert` | Convert block type | `!convert` |
+| `!lock` | Lock/unlock block | `!lock` |
+| `!lockall` | Lock all blocks | `!lockall` |
+| `!save` | Save all blocks to file | `!save` |
+| `!snap` | Toggle block snapping | `!snap` |
+| `!grid <value>` | Set grid size | `!grid 32` |
+| `!nc` | Toggle noclip | `!nc` |
+| `!god` | Toggle godmode | `!god` |
+| `!testblock` | Test block functionality | `!testblock` |
+
+### SafeZone Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `!safezone <name>` / `!sz <name>` | Create a safe zone (use twice: first sets corner 1, second sets corner 2) | `!safezone SpawnArea` |
+| `!listzone` / `!listzones` / `!zones` | List all safe zones | `!listzone` |
+| `!listzone <id>` / `!listzone <name>` | Show specific zone details | `!listzone 1` veya `!listzone SpawnArea` |
+| `!deletezone <id>` / `!deletezone <name>` | Delete a safe zone | `!deletezone 1` veya `!deletezone SpawnArea` |
+| `!removezone <id>` / `!removezone <name>` | Delete a safe zone (alias) | `!removezone SpawnArea` |
+
+### Command Usage Examples
+
+**Creating a SafeZone:**
+```
+1. Stand at the first corner of your desired zone
+2. Type: !safezone SpawnArea
+3. Move to the opposite corner
+4. Type: !safezone SpawnArea again
+5. Zone is created!
+```
+
+**Managing Blocks:**
+```
+!bm                    - Open menu
+!type Speed            - Select Speed block type
+!color Red             - Set color to red
+!create                - Create block at crosshair
+!delete                - Delete block you're looking at
+!save                  - Save all blocks
+```
+
+**Listing SafeZones:**
+```
+!listzone              - List all zones with basic info
+!listzone 1            - Show detailed info for zone ID 1
+!listzone SpawnArea    - Show detailed info for zone named "SpawnArea"
+```
+
+<br>
+
 ## Changes (vlamz fork)
 
-This fork includes the following updates:
+### Version 0.3.0 - SafeZone Feature Update (Latest)
 
+**Major Features Added:**
+- ✅ **SafeZone System** - Create safe zones with customizable properties
+  - Two-position zone creation (first position sets corner 1, second sets corner 2)
+  - Configurable godmode protection
+  - Automatic healing with customizable amount and interval
+  - Entry/exit notifications
+  - Block damage to players outside the zone
+  - Map-based zone storage and auto-loading
+  - Zone listing and management commands
+
+**Technical Improvements:**
 - ✅ Updated to CounterStrikeSharp v1.0.347
 - ✅ Fixed API compatibility issues
-- ✅ Updated author information to reflect fork status
+- ✅ Comprehensive memory leak prevention (timer cleanup on disconnect/death)
+- ✅ Null reference protection throughout SafeZone system
+- ✅ NaN/Infinity validation for all positions and values
+- ✅ Integer overflow protection for zone IDs
+- ✅ Duplicate zone name/ID prevention
+- ✅ Exception handling and error recovery
+- ✅ Performance optimizations (reduced GetPlayers() calls)
+- ✅ Build mode godmode conflict resolution
 
-### Migration Notes
+**Files Modified:**
+- `src/Main.cs` - Version update (0.2.4 → 0.3.0), SafeZone hot reload support
+- `src/Config.cs` - Added SafeZone configuration settings (`Settings.SafeZone`)
+- `src/Commands.cs` - Added SafeZone commands (create, list, delete) with full validation
+- `src/Events.cs` - Added SafeZone tick processing, damage blocking hook, player cleanup
+- `src/Files.cs` - Added SafeZone save/load functionality (`SafeZoneData` class)
+- `src/SafeZone.cs` - New SafeZone system implementation (250+ lines)
+- `src/Utils/Utils.cs` - Added SafeZone cleanup to Clear() function
 
-If you're upgrading from an earlier version:
+**What Changed:**
+1. **SafeZone.cs** - Yeni dosya eklendi, zone yönetimi, pozisyon kontrolü, healing timer sistemi
+2. **Events.cs** - OnTick'e SafeZone.OnTick() eklendi, OnTakeDamage hook'una SafeZone kontrolü eklendi, EventPlayerDeath'e SafeZone cleanup eklendi
+3. **Commands.cs** - CreateSafeZone, ListSafeZones, DeleteSafeZone fonksiyonları eklendi
+4. **Files.cs** - SafeZoneData.Save() ve Load() fonksiyonları eklendi, map bazlı JSON kayıt
+5. **Config.cs** - Settings_SafeZone class'ı ve default değerler eklendi
+6. **Main.cs** - Hot reload'da SafeZone yükleme eklendi
+
+### Version 0.2.4 → 0.3.0 Migration Notes
+
+If you're upgrading from version 0.2.4:
 - Make sure you have CounterStrikeSharp v1.0.347 or later installed
-- No configuration changes are required
+- No configuration changes are required (SafeZone uses default config values)
 - All existing blocks and saves are compatible
+- SafeZone data will be stored in `maps/<mapname>/safezones.json`
+- New config section `Settings.SafeZone` added with default values
+- SafeZone commands are available (see Commands section above for details)
 
 <br> <a href="https://ko-fi.com/exkludera" target="blank"><img src="https://cdn.ko-fi.com/cdn/kofi5.png" height="48px" alt="Buy Me a Coffee at ko-fi.com"></a>
 

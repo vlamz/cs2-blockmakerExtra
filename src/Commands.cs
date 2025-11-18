@@ -2,6 +2,7 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
+using FixVectorLeak;
 
 public static class Commands
 {
@@ -32,16 +33,21 @@ public static class Commands
         AddCommands(commands.Building.CopyBlock, CopyBlock);
         AddCommands(commands.Building.LockBlock, LockBlock);
         AddCommands(commands.Building.LockAll, LockAll);
+        
+        // SafeZone commands
+        AddCommands(commands.SafeZone.Create, CreateSafeZone);
+        AddCommands(commands.SafeZone.List, ListSafeZones);
+        AddCommands(commands.SafeZone.Delete, DeleteSafeZone);
+    }
+    private static void AddCommands(List<string> commands, Action<CCSPlayerController?, string> action)
+    {
+        foreach (var cmd in commands)
+            Instance.AddCommand($"css_{cmd}", "", (player, command) => action(player, command.ArgString));
     }
     private static void AddCommands(List<string> commands, Action<CCSPlayerController?> action)
     {
         foreach (var cmd in commands)
             Instance.AddCommand($"css_{cmd}", "", (player, command) => action(player));
-    }
-    private static void AddCommands(List<string> commands, Action<CCSPlayerController?, string> action)
-    {
-        foreach (var cmd in commands)
-            Instance.AddCommand($"css_{cmd}", "", (player, command) => action(player, command.ArgByIndex(1)));
     }
 
     public static void Unload()
@@ -66,16 +72,21 @@ public static class Commands
         RemoveCommands(commands.Building.CopyBlock, CopyBlock);
         RemoveCommands(commands.Building.LockBlock, LockBlock);
         RemoveCommands(commands.Building.LockAll, LockAll);
+        
+        // SafeZone commands
+        RemoveCommands(commands.SafeZone.Create, CreateSafeZone);
+        RemoveCommands(commands.SafeZone.List, ListSafeZones);
+        RemoveCommands(commands.SafeZone.Delete, DeleteSafeZone);
+    }
+    private static void RemoveCommands(List<string> commands, Action<CCSPlayerController?, string> action)
+    {
+        foreach (var cmd in commands)
+            Instance.RemoveCommand($"css_{cmd}", (player, command) => action(player, command.ArgString));
     }
     private static void RemoveCommands(List<string> commands, Action<CCSPlayerController?> action)
     {
         foreach (var cmd in commands)
             Instance.RemoveCommand($"css_{cmd}", (player, command) => action(player));
-    }
-    private static void RemoveCommands(List<string> commands, Action<CCSPlayerController?, string> action)
-    {
-        foreach (var cmd in commands)
-            Instance.RemoveCommand($"css_{cmd}", (player, command) => action(player, command.ArgByIndex(1)));
     }
 
     private static bool AllowedCommand(CCSPlayerController? player)
@@ -500,5 +511,203 @@ public static class Commands
             else Utils.PrintToChatAll($"{ChatColors.Red}Failed to find {ChatColors.White}{block.Type} {ChatColors.Red}default properties");
         }
         Utils.PrintToChatAll($"{ChatColors.Red}All placed blocks properties have been reset!");
+    }
+
+    // SafeZone Commands
+    public static void CreateSafeZone(CCSPlayerController? player, string input = "")
+    {
+        if (player == null || !AllowedCommand(player))
+            return;
+
+        if (!Utils.BuildMode(player))
+            return;
+
+        var trimmedName = input.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedName))
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Red}Usage: {ChatColors.White}!safezone <name>");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}First use sets position 1, second use sets position 2 and creates the zone");
+            return;
+        }
+
+        // Validate name length
+        if (trimmedName.Length > 64)
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Red}Zone name too long (max 64 characters)");
+            return;
+        }
+
+        var pawn = player.Pawn();
+        if (pawn == null || pawn.AbsOrigin == null)
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Red}Could not get your position");
+            return;
+        }
+
+        var currentPos = new Vector_t(pawn.AbsOrigin!.X, pawn.AbsOrigin.Y, pawn.AbsOrigin.Z);
+
+        // Validate position
+        if (float.IsNaN(currentPos.X) || float.IsNaN(currentPos.Y) || float.IsNaN(currentPos.Z) ||
+            float.IsInfinity(currentPos.X) || float.IsInfinity(currentPos.Y) || float.IsInfinity(currentPos.Z))
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Red}Invalid position detected");
+            return;
+        }
+
+        // Check if player has a pending position
+        if (SafeZone.PendingPositions.TryGetValue(player, out var pos1) && pos1 != null)
+        {
+            // Second position - create zone
+            var pos2 = currentPos;
+
+            try
+            {
+                // Use config defaults
+                var zoneId = SafeZone.CreateZone(trimmedName, pos1.Value, pos2, player);
+                var zone = SafeZone.GetZone(zoneId);
+
+                if (zone != null)
+                {
+                    zone.Godmode = config.Settings.SafeZone.DefaultGodmode;
+                    zone.Healing = config.Settings.SafeZone.DefaultHealing;
+                    zone.HealingAmount = Math.Max(0.1f, config.Settings.SafeZone.DefaultHealingAmount);
+                    zone.HealingInterval = Math.Max(0.1f, config.Settings.SafeZone.DefaultHealingInterval);
+                    zone.Notify = config.Settings.SafeZone.DefaultNotify;
+                    zone.BlockDamageToOutside = config.Settings.SafeZone.DefaultBlockDamageToOutside;
+                }
+
+                SafeZone.PendingPositions.Remove(player);
+
+                Utils.PrintToChat(player, $"{ChatColors.Green}SafeZone '{ChatColors.White}{trimmedName}{ChatColors.Green}' created! (ID: {ChatColors.White}{zoneId}{ChatColors.Green})");
+                Files.SafeZoneData.Save();
+            }
+            catch (ArgumentException ex)
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}{ex.Message}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}{ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}Failed to create SafeZone: {ex.Message}");
+                Utils.Log($"Error creating SafeZone: {ex.Message}");
+            }
+        }
+        else
+        {
+            // First position - store it
+            SafeZone.PendingPositions[player] = currentPos;
+            Utils.PrintToChat(player, $"{ChatColors.Green}Position 1 set. Use the command again to set position 2 and create zone '{ChatColors.White}{trimmedName}{ChatColors.Green}'");
+        }
+    }
+
+    public static void ListSafeZones(CCSPlayerController? player, string input = "")
+    {
+        if (player == null || !AllowedCommand(player))
+            return;
+
+        if (!Utils.BuildMode(player))
+            return;
+
+        var zoneIdOrName = input.Trim();
+        if (SafeZone.Zones.Count == 0)
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Red}No SafeZones found on this map");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(zoneIdOrName))
+        {
+            // Show specific zone details
+            SafeZone.ZoneData? zone = null;
+
+            // Try to parse as ID
+            if (int.TryParse(zoneIdOrName, out int id))
+            {
+                zone = SafeZone.GetZone(id);
+            }
+            else
+            {
+                // Try to find by name
+                zone = SafeZone.GetZoneByName(zoneIdOrName);
+            }
+
+            if (zone == null)
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Red}SafeZone not found: {ChatColors.White}{zoneIdOrName}");
+                return;
+            }
+
+            // Show detailed info
+            Utils.PrintToChat(player, $"{ChatColors.Green}=== SafeZone Details ===");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}ID: {ChatColors.White}{zone.Id}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Name: {ChatColors.White}{zone.Name}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Creator: {ChatColors.White}{zone.Creator}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Created: {ChatColors.White}{zone.CreatedAt:yyyy-MM-dd HH:mm}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Position 1: {ChatColors.White}({zone.MinPosition.X:F1}, {zone.MinPosition.Y:F1}, {zone.MinPosition.Z:F1})");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Position 2: {ChatColors.White}({zone.MaxPosition.X:F1}, {zone.MaxPosition.Y:F1}, {zone.MaxPosition.Z:F1})");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Godmode: {(zone.Godmode ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Healing: {(zone.Healing ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")} {(zone.Healing ? $"(+{zone.HealingAmount} HP every {zone.HealingInterval}s)" : "")}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Notify: {(zone.Notify ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")}");
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Block Damage to Outside: {(zone.BlockDamageToOutside ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")}");
+        }
+        else
+        {
+            // List all zones
+            Utils.PrintToChat(player, $"{ChatColors.Green}=== SafeZones ({ChatColors.White}{SafeZone.Zones.Count}{ChatColors.Green}) ===");
+            foreach (var zone in SafeZone.Zones.Values.OrderBy(z => z.Id))
+            {
+                Utils.PrintToChat(player, $"{ChatColors.Grey}ID {ChatColors.White}{zone.Id}{ChatColors.Grey}: {ChatColors.White}{zone.Name} {ChatColors.Grey}({zone.Creator})");
+                Utils.PrintToChat(player, $"{ChatColors.Grey}  Godmode: {(zone.Godmode ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")} | Healing: {(zone.Healing ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")} | Notify: {(zone.Notify ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")} | Block Damage: {(zone.BlockDamageToOutside ? ChatColors.Green + "ON" : ChatColors.Red + "OFF")}");
+            }
+            Utils.PrintToChat(player, $"{ChatColors.Grey}Use {ChatColors.White}!listzone <id/name>{ChatColors.Grey} for details");
+        }
+    }
+
+    public static void DeleteSafeZone(CCSPlayerController? player, string input = "")
+    {
+        if (player == null || !AllowedCommand(player))
+            return;
+
+        if (!Utils.BuildMode(player))
+            return;
+
+        var zoneIdOrName = input.Trim();
+        if (string.IsNullOrEmpty(zoneIdOrName))
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Red}Usage: {ChatColors.White}!deletezone <id/name>");
+            return;
+        }
+
+        SafeZone.ZoneData? zone = null;
+
+        // Try to parse as ID
+        if (int.TryParse(zoneIdOrName, out int id))
+        {
+            zone = SafeZone.GetZone(id);
+        }
+        else
+        {
+            // Try to find by name
+            zone = SafeZone.GetZoneByName(zoneIdOrName);
+        }
+
+        if (zone == null)
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Red}SafeZone not found: {ChatColors.White}{zoneIdOrName}");
+            return;
+        }
+
+        if (SafeZone.DeleteZone(zone.Id))
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Green}SafeZone '{ChatColors.White}{zone.Name}{ChatColors.Green}' (ID: {ChatColors.White}{zone.Id}{ChatColors.Green}) deleted");
+            Files.SafeZoneData.Save();
+        }
+        else
+        {
+            Utils.PrintToChat(player, $"{ChatColors.Red}Failed to delete SafeZone");
+        }
     }
 }

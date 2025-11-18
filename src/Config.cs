@@ -88,6 +88,17 @@ public class Config_Settings
         public bool HideModel { get; set; } = true;
     };
     public Settings_Lights Lights { get; set; } = new();
+
+    public class Settings_SafeZone
+    {
+        public bool DefaultGodmode { get; set; } = true;
+        public bool DefaultHealing { get; set; } = false;
+        public float DefaultHealingAmount { get; set; } = 1.0f;
+        public float DefaultHealingInterval { get; set; } = 1.0f;
+        public bool DefaultNotify { get; set; } = true;
+        public bool DefaultBlockDamageToOutside { get; set; } = true;
+    }
+    public Settings_SafeZone SafeZone { get; set; } = new();
 }
 
 public class Config_Commands
@@ -122,6 +133,14 @@ public class Config_Commands
         public List<string> TestBlock { get; set; } = [ "testblock" ];
     }
     public Commands_Building Building { get; set; } = new();
+
+    public class Commands_SafeZone
+    {
+        public List<string> Create { get; set; } = [ "safezone", "sz" ];
+        public List<string> List { get; set; } = [ "listzone", "listzones", "zones" ];
+        public List<string> Delete { get; set; } = [ "deletezone", "removezone" ];
+    }
+    public Commands_SafeZone SafeZone { get; set; } = new();
 }
 
 public class Config_Sounds
