@@ -682,6 +682,10 @@
 5. **Config.cs** - Settings_SafeZone class'ı ve default değerler eklendi
 6. **Main.cs** - Hot reload'da SafeZone yükleme eklendi
 
+**Bug Fixes:**
+- ✅ Fixed BuildMode function: BuilderData assignment now uses `target.Slot` instead of `player.Slot` when enabling build mode for eligible players
+- ✅ Fixed ManageBuilder function: BuilderData assignment now uses `targetPlayer.Slot` instead of `player.Slot` when granting builder access
+
 ### Version 0.2.4 → 0.3.0 Migration Notes
 
 If you're upgrading from version 0.2.4:
